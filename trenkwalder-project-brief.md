@@ -1,19 +1,5 @@
 # TRENKWALDER AI CHATBOT — Claude Project Brief
 
-## Context: Wer ist der Auftraggeber?
-
-**Damjan Savić** (@damjan1996 auf GitHub) — neuer Team Lead Software Development bei Trenkwalder.
-- GitHub Bio: "Crafting a world of automation: One bot at a time!"
-- 108+ Blog-Posts über AI-Agents, GPT API, Multi-Agent-Systeme, Tool Use Patterns
-- Tech-Affinität: Next.js, TypeScript, Tailwind, Python, LangGraph
-- Startup-Mindset: Greenfield-Aufbau einer Software-Plattform für ganz Europa
-- Er sucht: Passion, schlaflose Nächte, Bedeutung in der Berufung
-
-**Trenkwalder Stelle:** Fullstack Developer (Python + JS/TS, AWS, React, Docker, AI/ML Integration)
-- Gehalt: €45k–€110k
-- Komplexe AWS-Infrastruktur im Einsatz
-- Plattform wird von Grund auf neu gebaut
-
 ## Die Aufgabe (Original)
 
 Einen **Chatbot mit RAG** (Retrieval Augmented Generation) bauen, der:
