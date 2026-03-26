@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { BotIdClient } from "botid/client";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -41,6 +42,16 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} dark h-full scroll-smooth antialiased`}
     >
+      <head>
+        <BotIdClient
+          protect={[
+            {
+              path: "/api/*",
+              method: "POST",
+            },
+          ]}
+        />
+      </head>
       <body className="min-h-full bg-background text-foreground selection:bg-brand-electric-indigo/35 selection:text-brand-white">
         {children}
       </body>
