@@ -1,0 +1,39 @@
+# fly.toml — HR Service
+# Deploy with: fly deploy --config fly.toml
+#
+# Required secrets (set via `fly secrets set KEY=value`):
+#   HR_DATABASE_URL  — PostgreSQL connection URL
+#                      e.g. postgresql+asyncpg://user:pass@host:5432/trenkwalder_hr
+#                      (provision a Fly Postgres cluster: fly postgres create)
+#   CORS_ORIGINS     — JSON array of allowed origins, e.g. '["https://yourapp.fly.dev"]'
+
+app = 'trenkwalder-hr-service'
+primary_region = 'fra'
+
+[build]
+  dockerfile = 'Dockerfile'
+  build-context = '..'
+
+[env]
+  LOG_LEVEL = 'INFO'
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  [http_service.checks]
+    [http_service.checks.health]
+      grace_period = '10s'
+      interval = '30s'
+      method = 'GET'
+      path = '/health'
+      timeout = '5s'
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
