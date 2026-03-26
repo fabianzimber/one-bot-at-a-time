@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 SERVICES_ROOT = Path(__file__).resolve().parents[2]
 ENTRYPOINTS = (
+    ("shared", "shared"),
     ("chat-orchestrator", "chat-orchestrator"),
     ("rag-service", "rag-service"),
     ("hr-service", "hr-service"),
