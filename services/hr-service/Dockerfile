@@ -3,10 +3,11 @@ FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
 
 WORKDIR /app
 
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 COPY shared/ shared/
 COPY hr-service/ hr-service/
 
+# Install dependencies (--frozen requires uv.lock)
 RUN uv sync --frozen --package hr-service --no-dev
 
 # --- Runtime stage ---

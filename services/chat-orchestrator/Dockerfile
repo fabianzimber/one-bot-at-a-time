@@ -3,12 +3,12 @@ FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Copy workspace root and shared library first (better layer caching)
-COPY pyproject.toml ./
+# Copy workspace root, lockfile, and shared library first (better layer caching)
+COPY pyproject.toml uv.lock ./
 COPY shared/ shared/
 COPY chat-orchestrator/ chat-orchestrator/
 
-# Install dependencies
+# Install dependencies (--frozen requires uv.lock)
 RUN uv sync --frozen --package chat-orchestrator --no-dev
 
 # --- Runtime stage ---

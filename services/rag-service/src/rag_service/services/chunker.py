@@ -20,7 +20,13 @@ def recursive_character_split(text: str, chunk_size: int = 512, overlap: int = 5
     1. Try splitting on paragraphs (\\n\\n)
     2. Fall back to sentences (. ! ?)
     3. Fall back to characters
+
+    Raises:
+        ValueError: If overlap >= chunk_size (would cause infinite loop).
     """
+    if overlap >= chunk_size:
+        raise ValueError(f"overlap ({overlap}) must be less than chunk_size ({chunk_size})")
+
     if len(text) <= chunk_size:
         return [Chunk(text=text, index=0, metadata={})]
 
@@ -31,6 +37,8 @@ def recursive_character_split(text: str, chunk_size: int = 512, overlap: int = 5
     while start < len(text):
         end = min(start + chunk_size, len(text))
         chunks.append(Chunk(text=text[start:end], index=idx, metadata={}))
+        if end == len(text):
+            break
         start = end - overlap
         idx += 1
 

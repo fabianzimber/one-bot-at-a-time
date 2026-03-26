@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,10 @@ class OrgNode(BaseModel):
     name: str
     position: str
     department: str
-    reports: list["OrgNode"] = []
+    reports: list["OrgNode"] = Field(default_factory=list)
+
+
+OrgNode.model_rebuild()
 
 
 @router.get("/org", response_model=list[OrgNode])

@@ -1,6 +1,7 @@
 """Vacation management endpoints."""
 
 import logging
+from datetime import date
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -19,7 +20,8 @@ class VacationBalance(BaseModel):
 
 
 @router.get("/employees/{employee_id}/vacation", response_model=VacationBalance)
-async def get_vacation_balance(employee_id: str, year: int = 2026) -> VacationBalance:
+async def get_vacation_balance(employee_id: str, year: int | None = None) -> VacationBalance:
+    year = year or date.today().year
     """Get vacation balance for an employee."""
     # TODO: Query database
     return VacationBalance(

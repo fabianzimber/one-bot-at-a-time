@@ -4,9 +4,11 @@ import logging
 import sys
 from datetime import UTC, datetime
 
+_STANDARD_LOG_ATTRS = frozenset(logging.LogRecord("", 0, "", 0, "", (), None).__dict__)
+
 
 class JSONFormatter(logging.Formatter):
-    """Outputs log records as single-line JSON."""
+    """Outputs log records as single-line JSON, including extra fields."""
 
     def format(self, record: logging.LogRecord) -> str:
         import json
@@ -18,9 +20,13 @@ class JSONFormatter(logging.Formatter):
             "message": record.getMessage(),
             "module": record.module,
         }
+        # Merge extra fields passed via logger.info(..., extra={...})
+        for key, value in record.__dict__.items():
+            if key not in _STANDARD_LOG_ATTRS and key not in log_entry:
+                log_entry[key] = value
         if record.exc_info and record.exc_info[1]:
             log_entry["exception"] = self.formatException(record.exc_info)
-        return json.dumps(log_entry, ensure_ascii=False)
+        return json.dumps(log_entry, default=str, ensure_ascii=False)
 
 
 def setup_logging(level: str = "INFO") -> None:

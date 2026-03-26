@@ -16,8 +16,7 @@ build/
 venv/
 ENV/
 
-# uv
-uv.lock
+# uv (uv.lock is committed for reproducible builds)
 
 # Ruff
 .ruff_cache/

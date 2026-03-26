@@ -45,9 +45,11 @@ services:
     ports:
       - "8003:8000"
     environment:
-      - HR_DATABASE_URL=sqlite+aiosqlite:///./hr_data.db
+      - HR_DATABASE_URL=postgresql+asyncpg://admin:${DB_PASSWORD:-password}@postgres:5432/trenkwalder_hr
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CORS_ORIGINS=["http://localhost:3000"]
+    depends_on:
+      - postgres
     restart: unless-stopped
 
   redis:
@@ -56,6 +58,18 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=trenkwalder_hr
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
     restart: unless-stopped
 
   chromadb:
@@ -70,3 +84,4 @@ volumes:
   document-storage:
   chroma-data:
   redis-data:
+  pg-data:
