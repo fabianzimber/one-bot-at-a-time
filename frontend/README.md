@@ -33,7 +33,7 @@ types/
 
 ## Branding
 
-Die zentrale Theme-Definition liegt in [app/globals.css](/Users/Fabia/Documents/shiftbloom/git/one-bot-at-a-time/frontend/app/globals.css).
+Die zentrale Theme-Definition liegt in [app/globals.css](app/globals.css).
 
 - Brandfarben sind als CSS-Variablen und Tailwind Theme-Tokens hinterlegt.
 - shadcn/ui nutzt dieselben semantischen Tokens fuer `background`, `primary`, `border`, `ring` und weitere UI-Flaechen.
