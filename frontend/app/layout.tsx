@@ -36,6 +36,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const protectedRoutes = [
+    {
+      path: "/api/chat",
+      method: "POST" as const,
+    },
+    {
+      path: "/api/chat/stream",
+      method: "POST" as const,
+    },
+    {
+      path: "/api/documents",
+      method: "POST" as const,
+    },
+  ];
+
   return (
     <html
       lang="de"
@@ -43,14 +58,7 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} dark h-full scroll-smooth antialiased`}
     >
       <head>
-        <BotIdClient
-          protect={[
-            {
-              path: "/api/*",
-              method: "POST",
-            },
-          ]}
-        />
+        <BotIdClient protect={protectedRoutes} />
       </head>
       <body className="min-h-full bg-background text-foreground selection:bg-brand-electric-indigo/35 selection:text-brand-white">
         {children}

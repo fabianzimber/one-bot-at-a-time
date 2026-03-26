@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 import {
   buildInternalHeaders,
   buildServiceUrl,
-  getChatOrchestratorShareToken,
-  getChatOrchestratorUrl,
   getForwardedFor,
+  getRagServiceShareToken,
+  getRagServiceUrl,
 } from "@/lib/backend";
 import { allowRequest } from "@/lib/server-rate-limit";
 
@@ -14,7 +14,6 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const { isBot } = await checkBotId();
-
   if (isBot) {
     return NextResponse.json(
       { error: "Bot detected — access denied" },
@@ -23,7 +22,7 @@ export async function POST(req: Request) {
   }
 
   const clientIp = getForwardedFor(req);
-  const rateLimit = allowRequest(clientIp);
+  const rateLimit = allowRequest(`${clientIp}:documents`, 6, 60);
   if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: `Rate limit exceeded. Retry in ${rateLimit.retryAfter}s.` },
@@ -31,21 +30,20 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = await req.json();
+  const formData = await req.formData();
   const backendHeaders = buildInternalHeaders(req);
-  backendHeaders.set("content-type", "application/json");
 
   try {
     const response = await fetch(
       buildServiceUrl(
-        getChatOrchestratorUrl(),
-        "/api/v1/chat",
-        getChatOrchestratorShareToken(),
+        getRagServiceUrl(),
+        "/api/v1/ingest",
+        getRagServiceShareToken(),
       ),
       {
       method: "POST",
       headers: backendHeaders,
-      body: JSON.stringify(body),
+      body: formData,
       cache: "no-store",
       },
     );
@@ -58,7 +56,7 @@ export async function POST(req: Request) {
     return NextResponse.json(payload);
   } catch {
     return NextResponse.json(
-      { error: "Chat orchestrator unavailable" },
+      { error: "Document ingestion unavailable" },
       { status: 502 },
     );
   }

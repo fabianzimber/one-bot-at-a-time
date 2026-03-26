@@ -45,6 +45,8 @@ async def ensure_runtime_ready(app: FastAPI) -> None:
             rag_service_url=settings.rag_service_url,
             hr_service_url=settings.hr_service_url,
             internal_api_key=settings.internal_api_key,
+            rag_service_share_token=settings.rag_service_share_token,
+            hr_service_share_token=settings.hr_service_share_token,
         )
         app.state.chat_service = ChatService(
             llm_router=llm_router,

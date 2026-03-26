@@ -1,12 +1,18 @@
 import { checkBotId } from "botid/server";
 import { NextResponse } from "next/server";
 
-import { buildInternalHeaders, getChatOrchestratorUrl, getForwardedFor } from "@/lib/backend";
+import {
+  buildInternalHeaders,
+  buildServiceUrl,
+  getChatOrchestratorShareToken,
+  getChatOrchestratorUrl,
+  getForwardedFor,
+} from "@/lib/backend";
 import { allowRequest } from "@/lib/server-rate-limit";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   const { isBot } = await checkBotId();
   if (isBot) {
     return NextResponse.json(
@@ -24,19 +30,26 @@ export async function GET(req: Request) {
     );
   }
 
-  const url = new URL(req.url);
-  const message = url.searchParams.get("message");
+  const body = (await req.json()) as {
+    message?: string;
+    conversation_id?: string;
+  };
+  const message = body.message?.trim();
   if (!message) {
     return NextResponse.json(
-      { error: "Missing message query parameter" },
+      { error: "Missing message in request body" },
       { status: 400 },
     );
   }
 
   const backendHeaders = buildInternalHeaders(req);
-  const streamUrl = new URL(`${getChatOrchestratorUrl()}/api/v1/chat/stream`);
+  const streamUrl = buildServiceUrl(
+    getChatOrchestratorUrl(),
+    "/api/v1/chat/stream",
+    getChatOrchestratorShareToken(),
+  );
   streamUrl.searchParams.set("message", message);
-  const conversationId = url.searchParams.get("conversation_id");
+  const conversationId = body.conversation_id?.trim();
   if (conversationId) {
     streamUrl.searchParams.set("conversation_id", conversationId);
   }

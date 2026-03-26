@@ -1,9 +1,10 @@
 type MessageBubbleProps = {
   role: "bot" | "user";
   content: string;
+  pending?: boolean;
 };
 
-export function MessageBubble({ role, content }: MessageBubbleProps) {
+export function MessageBubble({ role, content, pending = false }: MessageBubbleProps) {
   const isUser = role === "user";
 
   return (
@@ -16,6 +17,7 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
         }
       >
         {content}
+        {pending ? <span className="ml-1 inline-block animate-pulse text-brand-slate-light">▍</span> : null}
       </div>
     </div>
   );

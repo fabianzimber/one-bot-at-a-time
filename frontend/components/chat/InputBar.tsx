@@ -4,26 +4,27 @@ import { useMemo, useRef, useState } from "react";
 import { Paperclip, SendHorizontal, X } from "lucide-react";
 
 type InputBarProps = {
-  onSubmit: (message: string, file: File | null) => void;
+  onSubmit: (message: string, file: File | null) => Promise<void> | void;
+  disabled?: boolean;
 };
 
-export function InputBar({ onSubmit }: InputBarProps) {
+export function InputBar({ onSubmit, disabled = false }: InputBarProps) {
   const [message, setMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canSubmit = useMemo(() => {
-    return message.trim().length > 0 || selectedFile !== null;
-  }, [message, selectedFile]);
+    return !disabled && (message.trim().length > 0 || selectedFile !== null);
+  }, [disabled, message, selectedFile]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!canSubmit) {
       return;
     }
 
-    onSubmit(message.trim(), selectedFile);
+    await onSubmit(message.trim(), selectedFile);
     setMessage("");
     setSelectedFile(null);
 
@@ -71,8 +72,9 @@ export function InputBar({ onSubmit }: InputBarProps) {
 
         <button
           type="button"
+          disabled={disabled}
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex size-10 items-center justify-center rounded-lg border border-brand-slate bg-brand-midnight text-brand-slate-light transition-colors hover:border-brand-electric-indigo hover:text-brand-ghost"
+          className="inline-flex size-10 items-center justify-center rounded-lg border border-brand-slate bg-brand-midnight text-brand-slate-light transition-colors hover:border-brand-electric-indigo hover:text-brand-ghost disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Attach file"
         >
           <Paperclip className="size-4" />
@@ -81,8 +83,9 @@ export function InputBar({ onSubmit }: InputBarProps) {
         <input
           value={message}
           onChange={(event) => setMessage(event.target.value)}
+          disabled={disabled}
           placeholder="Write a message"
-          className="h-10 w-full rounded-lg border border-brand-slate bg-brand-midnight px-3 text-sm text-brand-ghost outline-none placeholder:text-brand-slate-light focus:border-brand-electric-indigo"
+          className="h-10 w-full rounded-lg border border-brand-slate bg-brand-midnight px-3 text-sm text-brand-ghost outline-none placeholder:text-brand-slate-light focus:border-brand-electric-indigo disabled:cursor-not-allowed disabled:opacity-60"
         />
 
         <button
