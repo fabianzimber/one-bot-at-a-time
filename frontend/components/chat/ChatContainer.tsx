@@ -161,7 +161,11 @@ export function ChatContainer() {
         }
 
         buffer += decoder.decode(value, { stream: true });
-        const chunks = buffer.split("\n\n");
+
+        // Vercel/Fetch preserves CRLF in SSE streams, so normalize before
+        // splitting events; otherwise the client can miss the final `done` event.
+        const normalizedBuffer = buffer.replace(/\r\n/g, "\n");
+        const chunks = normalizedBuffer.split("\n\n");
         buffer = chunks.pop() ?? "";
 
         for (const chunk of chunks) {
