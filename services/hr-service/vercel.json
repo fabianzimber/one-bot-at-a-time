@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "main.py": {
+      "includeFiles": "../shared/src/shared/**",
+      "excludeFiles": "{tests/**,__tests__/**,**/*.test.py,**/test_*.py,__pycache__/**,.venv/**}"
+    }
+  }
+}
