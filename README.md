@@ -36,6 +36,62 @@ A production-grade AI chatbot platform with Retrieval-Augmented Generation (RAG)
 
 A CLI answers the literal requirement; a full platform demonstrates engineering judgment. The architectural choices below are intentional and defensible — each decision was made to maximise long-term maintainability, scalability, and developer experience.
 
+### Architecture Decisions Made In This Branch
+
+This branch now contains a concrete, working implementation of the target architecture. The list below captures the decisions made during the implementation session and should be treated as the current source of truth when they differ from older aspirational sections later in this document.
+
+1. **Vercel is the active deployment target for all deployable units.**  
+   Decision: the frontend, chat orchestrator, RAG service, and HR service each run as their own Vercel project.  
+   Reasoning: this matches the current operating model, keeps preview deployments cheap and fast, and avoids inventing parallel deployment paths while the product is still evolving.
+
+2. **`services/shared` remains a workspace package and is not deployed as its own service.**  
+   Decision: shared config, models, and middleware are consumed as a Python workspace dependency by the three backend services.  
+   Reasoning: it reduces duplication and keeps contracts synchronized without introducing a fourth backend process that would add no business value.
+
+3. **The public boundary is the Next.js BFF, not the Python services.**  
+   Decision: browser traffic should go through `POST /api/chat` and `GET /api/chat/stream` in the frontend, which then proxy to the chat orchestrator.  
+   Reasoning: this centralizes BotID checks, public rate limiting, same-origin behavior, and future auth concerns in one place instead of duplicating them across services.
+
+4. **Internal service-to-service calls are protected by `x-internal-api-key`.**  
+   Decision: the frontend BFF and Python services use a shared `INTERNAL_API_KEY`; backend routers accept internal traffic only when the header matches.  
+   Reasoning: this is the lightest viable protection for private service hops on Vercel and is materially better than leaving the internal APIs unauthenticated.
+
+5. **Chat state and rate limiting must degrade gracefully when Redis is unavailable.**  
+   Decision: the chat orchestrator uses Redis when configured, but falls back to in-memory conversation storage and in-memory rate limiting when Redis is absent or unhealthy.  
+   Reasoning: preview deployments and local development should still work even if Redis is not provisioned yet; correctness degrades in a controlled way instead of the whole service failing cold.
+
+6. **Chat orchestration uses OpenAI tool-calling with bounded fallbacks instead of handwritten intent routing.**  
+   Decision: the orchestrator gives the LLM tool definitions for RAG and HR access, executes returned tool calls, reinjects results, and completes the final answer; when no usable OpenAI key is present, a deterministic fallback path is used so the system still behaves in tests and previews.  
+   Reasoning: tool-calling keeps routing logic flexible while preserving an executable contract between services, and the deterministic fallback avoids making tests depend on live model availability.
+
+7. **The RAG service stores document metadata separately from vector retrieval state.**  
+   Decision: uploaded documents and chunks are persisted via SQLModel-backed records, while vector retrieval is abstracted behind a `VectorStore`.  
+   Reasoning: listing and deleting documents should not depend on vector store internals alone, and this split is the cleanest path toward future `pgvector` adoption.
+
+8. **RAG ingestion is in-memory and Vercel-safe.**  
+   Decision: files are parsed directly from uploaded bytes, chunked in process, embedded, and stored without relying on a persistent local filesystem.  
+   Reasoning: Vercel serverless functions cannot be designed around durable local disk, so ingestion has to work from memory first.
+
+9. **Current preview RAG runs on `chroma` plus SQLite metadata; production intent remains `pgvector`.**  
+   Decision: previews and local runs currently use `RAG_VECTOR_BACKEND=chroma` and SQLite-backed metadata storage, while the longer-term production target remains Postgres/Neon with `pgvector`.  
+   Reasoning: this keeps previews simple and deployable now, while preserving the abstraction boundary required to move to a durable production vector backend later.
+
+10. **HR data is deterministic, seeded, and database-backed.**  
+    Decision: the HR service seeds realistic `de_DE` Faker data into its database on first boot and serves all employee, vacation, salary, timetracking, and org endpoints from that persisted dataset.  
+    Reasoning: seeded persistence is much closer to the eventual production shape than hardcoded mocks and gives the orchestrator stable, queryable semantics.
+
+11. **FastAPI lifespan alone is not trusted as the only initialization path.**  
+    Decision: runtime dependencies such as DB initialization, embedder setup, vector store setup, and chat runtime state are also guarded by explicit lazy initialization helpers.  
+    Reasoning: this makes the services robust in tests and in serverless cold-start paths where relying solely on startup events can be fragile.
+
+12. **Preview environments are branch-specific and chained end-to-end.**  
+    Decision: the Vercel preview for branch `refactor/themeing` is wired so frontend preview targets chat preview, and chat preview targets the matching RAG and HR previews.  
+    Reasoning: debugging cross-service changes requires the whole request path to stay on the same preview generation instead of mixing preview and production URLs.
+
+13. **Current Vercel Python deploys accept runtime dependency installation as a temporary tradeoff.**  
+    Decision: the Python services currently exceed the Vercel bundle limit and therefore deploy with runtime dependency installation enabled.  
+    Reasoning: this is acceptable for getting the system working end-to-end in preview, but it should be treated as operational debt because it increases cold-start and runtime risk.
+
 ---
 
 ## 2. Architecture Overview

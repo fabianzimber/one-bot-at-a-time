@@ -47,3 +47,25 @@ Die Startseite ist bewusst als minimalistische Work-in-Progress-Landing aufgebau
 - Streaming-Antworten
 - Tool-Zustaende
 - Dokumenten-Upload
+
+## BFF und Service-Kopplung
+
+Das Frontend ist in diesem Branch nicht nur UI, sondern auch die oeffentliche BFF-Schicht.
+
+- `POST /api/chat` proxyt zum Chat-Orchestrator
+- `GET /api/chat/stream` proxyt SSE zum Chat-Orchestrator
+- BotID-Pruefung passiert am öffentlichen Rand im Frontend
+- interne Weitergabe an die Python-Services erfolgt mit `x-internal-api-key`
+
+Wichtige Server-Env-Variablen:
+
+- `CHAT_ORCHESTRATOR_URL`
+- `INTERNAL_API_KEY`
+
+Die beabsichtigte Preview-Kette lautet:
+
+```text
+Frontend Preview -> Chat Preview -> RAG Preview / HR Preview
+```
+
+Wenn sich eine Preview-URL des Chat-Orchestrators aendert, muss `CHAT_ORCHESTRATOR_URL` im entsprechenden Vercel-Preview-Environment mitgezogen werden.
