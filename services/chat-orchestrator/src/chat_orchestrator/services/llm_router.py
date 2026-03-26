@@ -42,7 +42,7 @@ class LLMRouter:
         # Fallback: re-enable all and return primary
         for provider in self.providers:
             provider.enabled = True
-        return self.providers[0]
+        return sorted(self.providers, key=lambda p: p.priority)[0]
 
     async def complete(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
         """Send a completion request to the active provider."""
