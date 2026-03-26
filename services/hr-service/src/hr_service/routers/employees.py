@@ -2,15 +2,23 @@
 
 import logging
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, ConfigDict
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from hr_service.database import Employee as EmployeeRecord
+from hr_service.database import get_session
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+session_dependency = Depends(get_session)
 
 
-class Employee(BaseModel):
+class EmployeeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     first_name: str
     last_name: str
@@ -20,22 +28,23 @@ class Employee(BaseModel):
     manager_id: str | None = None
 
 
-@router.get("/employees", response_model=list[Employee])
-async def list_employees(department: str | None = None) -> list[Employee]:
+@router.get("/employees", response_model=list[EmployeeResponse])
+async def list_employees(
+    department: str | None = Query(default=None),
+    session: AsyncSession = session_dependency,
+) -> list[EmployeeResponse]:
     """List all employees, optionally filtered by department."""
-    # TODO: Query database
-    return []
+    statement = select(EmployeeRecord).order_by(EmployeeRecord.last_name, EmployeeRecord.first_name)
+    if department:
+        statement = statement.where(EmployeeRecord.department == department)
+    result = await session.exec(statement)
+    return [EmployeeResponse.model_validate(employee) for employee in result.all()]
 
 
-@router.get("/employees/{employee_id}", response_model=Employee)
-async def get_employee(employee_id: str) -> Employee:
+@router.get("/employees/{employee_id}", response_model=EmployeeResponse)
+async def get_employee(employee_id: str, session: AsyncSession = session_dependency) -> EmployeeResponse:
     """Get a specific employee by ID."""
-    # TODO: Query database
-    return Employee(
-        id=employee_id,
-        first_name="Stub",
-        last_name="Mitarbeiter",
-        email="stub@trenkwalder.com",
-        department="IT",
-        position="Developer",
-    )
+    employee = await session.get(EmployeeRecord, employee_id)
+    if employee is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
+    return EmployeeResponse.model_validate(employee)

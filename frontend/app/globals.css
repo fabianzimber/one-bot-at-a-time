@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-*: initial;
   --color-brand-midnight: var(--brand-midnight);
   --color-brand-electric-indigo: var(--brand-electric-indigo);
   --color-brand-indigo-deep: var(--brand-indigo-deep);
@@ -71,11 +72,10 @@
   --radius-4xl: calc(var(--radius) * 2.6);
   --animate-float-slow: float-slow 12s ease-in-out infinite;
   --animate-pulse-soft: pulse-soft 6s ease-in-out infinite;
-  --animate-drift: drift 18s ease-in-out infinite;
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   --brand-midnight: #0d1117;
   --brand-electric-indigo: #6366f1;
   --brand-indigo-deep: #4338ca;
@@ -99,86 +99,73 @@
   --brand-teal-50: #f0fdfa;
   --brand-teal-100: #ccfbf1;
   --brand-teal-light: #5eead4;
-  --background: var(--brand-ghost);
-  --foreground: var(--brand-midnight);
-  --card: var(--brand-white);
-  --card-foreground: var(--brand-midnight);
-  --popover: var(--brand-white);
-  --popover-foreground: var(--brand-midnight);
+  --background: var(--brand-midnight);
+  --foreground: var(--brand-ghost);
+  --card: var(--brand-midnight);
+  --card-foreground: var(--brand-ghost);
+  --popover: var(--brand-midnight);
+  --popover-foreground: var(--brand-ghost);
   --primary: var(--brand-electric-indigo);
   --primary-foreground: var(--brand-white);
-  --secondary: var(--brand-indigo-50);
-  --secondary-foreground: var(--brand-indigo-deep);
-  --muted: var(--brand-indigo-50);
-  --muted-foreground: var(--brand-slate);
-  --accent: var(--brand-teal-50);
+  --secondary: var(--brand-indigo-deep);
+  --secondary-foreground: var(--brand-ghost);
+  --muted: var(--brand-slate);
+  --muted-foreground: var(--brand-slate-light);
+  --accent: var(--brand-teal);
   --accent-foreground: var(--brand-midnight);
   --destructive: var(--brand-scarlet);
-  --border: rgba(71, 85, 105, 0.14);
-  --input: rgba(99, 102, 241, 0.12);
+  --border: var(--brand-slate);
+  --input: var(--brand-slate);
   --ring: var(--brand-indigo-light);
   --chart-1: var(--brand-electric-indigo);
   --chart-2: var(--brand-teal);
   --chart-3: var(--brand-amber);
   --chart-4: var(--brand-indigo-deep);
   --chart-5: var(--brand-scarlet);
-  --radius: 1rem;
-  --sidebar: var(--brand-white);
-  --sidebar-foreground: var(--brand-midnight);
+  --radius: 0.75rem;
+  --sidebar: var(--brand-midnight);
+  --sidebar-foreground: var(--brand-ghost);
   --sidebar-primary: var(--brand-electric-indigo);
   --sidebar-primary-foreground: var(--brand-white);
-  --sidebar-accent: var(--brand-indigo-50);
-  --sidebar-accent-foreground: var(--brand-indigo-deep);
-  --sidebar-border: rgba(71, 85, 105, 0.14);
+  --sidebar-accent: var(--brand-indigo-deep);
+  --sidebar-accent-foreground: var(--brand-ghost);
+  --sidebar-border: var(--brand-slate);
   --sidebar-ring: var(--brand-indigo-light);
-  --page-gradient:
-    radial-gradient(circle at 16% 18%, rgba(99, 102, 241, 0.14), transparent 28%),
-    radial-gradient(circle at 82% 12%, rgba(20, 184, 166, 0.12), transparent 22%),
-    linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-  --grid-line: rgba(71, 85, 105, 0.08);
-  --panel-shadow: 0 24px 64px rgba(13, 17, 23, 0.08);
 }
 
 .dark {
   color-scheme: dark;
   --background: var(--brand-midnight);
   --foreground: var(--brand-ghost);
-  --card: #101725;
-  --card-foreground: var(--brand-white);
-  --popover: #141c2c;
-  --popover-foreground: var(--brand-white);
+  --card: var(--brand-midnight);
+  --card-foreground: var(--brand-ghost);
+  --popover: var(--brand-midnight);
+  --popover-foreground: var(--brand-ghost);
   --primary: var(--brand-electric-indigo);
   --primary-foreground: var(--brand-white);
-  --secondary: #17233a;
+  --secondary: var(--brand-indigo-deep);
   --secondary-foreground: var(--brand-ghost);
-  --muted: #16202f;
+  --muted: var(--brand-slate);
   --muted-foreground: var(--brand-slate-light);
-  --accent: #112723;
-  --accent-foreground: var(--brand-white);
+  --accent: var(--brand-teal);
+  --accent-foreground: var(--brand-midnight);
   --destructive: var(--brand-scarlet);
-  --border: rgba(226, 232, 240, 0.14);
-  --input: rgba(129, 140, 248, 0.18);
+  --border: var(--brand-slate);
+  --input: var(--brand-slate);
   --ring: var(--brand-indigo-light);
   --chart-1: var(--brand-electric-indigo);
   --chart-2: var(--brand-teal);
   --chart-3: var(--brand-amber);
   --chart-4: var(--brand-indigo-deep);
   --chart-5: var(--brand-scarlet);
-  --sidebar: #101725;
+  --sidebar: var(--brand-midnight);
   --sidebar-foreground: var(--brand-ghost);
   --sidebar-primary: var(--brand-electric-indigo);
   --sidebar-primary-foreground: var(--brand-white);
-  --sidebar-accent: #17233a;
+  --sidebar-accent: var(--brand-indigo-deep);
   --sidebar-accent-foreground: var(--brand-ghost);
-  --sidebar-border: rgba(226, 232, 240, 0.14);
+  --sidebar-border: var(--brand-slate);
   --sidebar-ring: var(--brand-indigo-light);
-  --page-gradient:
-    radial-gradient(circle at 18% 16%, rgba(99, 102, 241, 0.28), transparent 32%),
-    radial-gradient(circle at 82% 14%, rgba(20, 184, 166, 0.18), transparent 24%),
-    radial-gradient(circle at 76% 80%, rgba(245, 158, 11, 0.12), transparent 22%),
-    linear-gradient(180deg, #0d1117 0%, #0a1018 100%);
-  --grid-line: rgba(226, 232, 240, 0.06);
-  --panel-shadow: 0 32px 90px rgba(5, 10, 17, 0.55);
 }
 
 @keyframes float-slow {
@@ -203,59 +190,14 @@
   }
 }
 
-@keyframes drift {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate3d(10px, -8px, 0) rotate(6deg);
-  }
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
-    background-image: var(--page-gradient);
-    background-attachment: fixed;
   }
   html {
     @apply font-sans;
-  }
-}
-
-@layer utilities {
-  .brand-grid {
-    background-image:
-      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-    background-size: clamp(2.75rem, 5vw, 4.25rem) clamp(2.75rem, 5vw, 4.25rem);
-    mask-image: radial-gradient(circle at center, black 34%, transparent 86%);
-  }
-
-  .brand-panel {
-    box-shadow: var(--panel-shadow);
-  }
-
-  .hero-orb {
-    box-shadow:
-      0 0 0 1px rgba(129, 140, 248, 0.18),
-      0 0 32px rgba(99, 102, 241, 0.38),
-      0 0 90px rgba(20, 184, 166, 0.16);
-  }
-
-  .text-gradient-brand {
-    background-image: linear-gradient(
-      135deg,
-      var(--brand-white) 8%,
-      var(--brand-indigo-light) 52%,
-      var(--brand-teal-light) 100%
-    );
-    background-clip: text;
-    color: transparent;
-    -webkit-background-clip: text;
   }
 }

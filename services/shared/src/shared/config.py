@@ -8,9 +8,10 @@ class BaseServiceSettings(BaseSettings):
     """Base settings class — each service subclasses with its own env_prefix.
 
     Shared fields use validation_alias with AliasChoices so they are read from
-    the unprefixed env var (LOG_LEVEL, CORS_ORIGINS, OPENAI_API_KEY) regardless
-    of the subclass's env_prefix.  The prefixed variant (e.g. CHAT_LOG_LEVEL)
-    is still accepted as a service-specific override.
+    the unprefixed env var (LOG_LEVEL, CORS_ORIGINS, OPENAI_API_KEY,
+    INTERNAL_API_KEY) regardless of the subclass's env_prefix. The prefixed
+    variant (e.g. CHAT_LOG_LEVEL) is still accepted as a service-specific
+    override.
     """
 
     model_config = SettingsConfigDict(
@@ -32,6 +33,10 @@ class BaseServiceSettings(BaseSettings):
     openai_api_key: str = Field(
         default="",
         validation_alias=AliasChoices("openai_api_key", "OPENAI_API_KEY"),
+    )
+    internal_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("internal_api_key", "INTERNAL_API_KEY"),
     )
 
     # Service identity (overridden per service)
