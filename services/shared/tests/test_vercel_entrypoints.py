@@ -3,6 +3,7 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 SERVICES_ROOT = Path(__file__).resolve().parents[2]
@@ -13,7 +14,7 @@ ENTRYPOINTS = (
 )
 
 
-def load_app(service_dir: str):
+def load_vercel_entrypoint_app(service_dir: str):
     module_path = SERVICES_ROOT / service_dir / "main.py"
     spec = spec_from_file_location(f"{service_dir.replace('-', '_')}_vercel_main", module_path)
     assert spec is not None
@@ -23,10 +24,10 @@ def load_app(service_dir: str):
     return module.app
 
 
-def test_vercel_entrypoints_expose_service_apps():
-    for service_dir, service_name in ENTRYPOINTS:
-        client = TestClient(load_app(service_dir))
-        response = client.get("/health")
+@pytest.mark.parametrize(("service_dir", "service_name"), ENTRYPOINTS)
+def test_vercel_entrypoints_expose_service_apps(service_dir: str, service_name: str):
+    client = TestClient(load_vercel_entrypoint_app(service_dir))
+    response = client.get("/health")
 
-        assert response.status_code == 200
-        assert response.json()["service"] == service_name
+    assert response.status_code == 200
+    assert response.json()["service"] == service_name
