@@ -1,0 +1,50 @@
+[project]
+name = "trenkwalder-services"
+version = "0.1.0"
+description = "Trenkwalder AI Assistant — Production-Grade Microservice Platform"
+requires-python = ">=3.13"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = ["shared", "chat-orchestrator", "rag-service", "hr-service"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "pytest-cov>=6.1",
+    "ruff>=0.11",
+    "httpx>=0.28",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+    "RUF",  # ruff-specific rules
+]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["shared", "chat_orchestrator", "rag_service", "hr_service"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["shared/tests", "chat-orchestrator/tests", "rag-service/tests", "hr-service/tests"]
+pythonpath = [
+    "shared/src",
+    "chat-orchestrator/src",
+    "rag-service/src",
+    "hr-service/src",
+]

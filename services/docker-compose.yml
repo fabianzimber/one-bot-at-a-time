@@ -1,0 +1,87 @@
+services:
+  chat-orchestrator:
+    build:
+      context: .
+      dockerfile: chat-orchestrator/Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CHAT_RAG_SERVICE_URL=http://rag-service:8000
+      - CHAT_HR_SERVICE_URL=http://hr-service:8000
+      - CHAT_REDIS_URL=redis://redis:6379/0
+      - CHAT_LLM_MODEL=${CHAT_LLM_MODEL:-gpt-4o}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=["http://localhost:3000"]
+    depends_on:
+      - redis
+      - rag-service
+      - hr-service
+    restart: unless-stopped
+
+  rag-service:
+    build:
+      context: .
+      dockerfile: rag-service/Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RAG_CHROMA_HOST=chromadb
+      - RAG_CHROMA_PORT=8000
+      - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL:-text-embedding-3-small}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=["http://localhost:3000"]
+    depends_on:
+      - chromadb
+    volumes:
+      - document-storage:/data/documents
+    restart: unless-stopped
+
+  hr-service:
+    build:
+      context: .
+      dockerfile: hr-service/Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      - HR_DATABASE_URL=postgresql+asyncpg://admin:${DB_PASSWORD:-password}@postgres:5432/trenkwalder_hr
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=["http://localhost:3000"]
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=trenkwalder_hr
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8004:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    restart: unless-stopped
+
+volumes:
+  document-storage:
+  chroma-data:
+  redis-data:
+  pg-data:

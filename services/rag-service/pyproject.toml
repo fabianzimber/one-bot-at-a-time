@@ -1,0 +1,21 @@
+[project]
+name = "rag-service"
+version = "0.1.0"
+description = "RAG Service — document ingestion, embedding, and semantic search"
+requires-python = ">=3.13"
+dependencies = [
+    "shared",
+    "openai>=2.30",
+    "chromadb>=1.5",
+    "python-multipart>=0.0.22",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rag_service"]
