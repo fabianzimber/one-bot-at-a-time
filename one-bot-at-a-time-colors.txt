@@ -1,0 +1,157 @@
+========================================================================
+  one-bot-at-a-time — Color Reference
+  Brand Identity Guidelines v1.0
+  Shiftbloom Studio · 2026
+========================================================================
+
+  CORE PALETTE
+  --------------------------------------------------------------------
+  Electric Indigo      #6366F1   rgb(99, 102, 241)
+                       Role: Brand Primary
+                       Intelligence in motion — the signal that says a bot is alive and thinking
+
+  Indigo Deep          #4338CA   rgb(67, 56, 202)
+                       Role: Primary Hover/Active
+                       Concentrated intention — when focus intensifies
+
+  Indigo Light         #818CF8   rgb(129, 140, 248)
+                       Role: Primary Soft
+                       Ambient intelligence — the quiet hum of systems working
+
+
+  ACCENT COLORS
+  --------------------------------------------------------------------
+  Scarlet              #EF4444   rgb(239, 68, 68)
+                       Role: Accent — Passion
+                       The spark of purpose — why we build, what drives us forward
+
+  Amber                #F59E0B   rgb(245, 158, 11)
+                       Role: Accent — Craft
+                       Warmth of the human hand — craftsmanship, patience, earned mastery
+
+  Teal                 #14B8A6   rgb(20, 184, 166)
+                       Role: Accent — Growth
+                       Living systems — growth, health, the organic nature of good automation
+
+
+  NEUTRALS
+  --------------------------------------------------------------------
+  Midnight             #0D1117   rgb(13, 17, 23)
+                       Role: Primary Dark
+                       The depth before creation — focus, authority, the void that holds potential
+
+  Slate                #475569   rgb(71, 85, 105)
+                       Role: Body Text
+                       The steady voice — reliable, readable, grounded
+
+  Slate Light          #94A3B8   rgb(148, 163, 184)
+                       Role: Secondary Text
+                       The whisper — supporting information, metadata, hints
+
+  Silver               #E2E8F0   rgb(226, 232, 240)
+                       Role: Borders & Lines
+                       Structure made visible — the scaffolding of clarity
+
+  Ghost                #F8FAFC   rgb(248, 250, 252)
+                       Role: Background Tint
+                       Breathing room — space for ideas to land
+
+  White                #FFFFFF   rgb(255, 255, 255)
+                       Role: Canvas
+                       Pure potential — the blank page before the first line of code
+
+
+  EXTENDED TINTS
+  --------------------------------------------------------------------
+  Indigo 50            #EEF2FF   rgb(238, 242, 255)
+                       Lightest indigo background
+
+  Indigo 100           #E0E7FF   rgb(224, 231, 255)
+                       Light indigo background
+
+  Red 50               #FEF2F2   rgb(254, 242, 242)
+                       Lightest red background
+
+  Red 100              #FEE2E2   rgb(254, 226, 226)
+                       Light red background
+
+  Scarlet Light        #FCA5A5   rgb(252, 165, 165)
+                       Soft red accent
+
+  Amber 50             #FFFBEB   rgb(255, 251, 235)
+                       Lightest amber background
+
+  Amber 100            #FEF3C7   rgb(254, 243, 199)
+                       Light amber background
+
+  Amber Light          #FDE68A   rgb(253, 232, 138)
+                       Soft amber accent
+
+  Teal 50              #F0FDFA   rgb(240, 253, 250)
+                       Lightest teal background
+
+  Teal 100             #CCFBF1   rgb(204, 251, 241)
+                       Light teal background
+
+  Teal Light           #5EEAD4   rgb(94, 234, 212)
+                       Soft teal accent
+
+
+  CSS CUSTOM PROPERTIES
+  --------------------------------------------------------------------
+  :root {
+    --color-midnight: #0D1117;
+    --color-electric-indigo: #6366F1;
+    --color-indigo-deep: #4338CA;
+    --color-indigo-light: #818CF8;
+    --color-scarlet: #EF4444;
+    --color-amber: #F59E0B;
+    --color-teal: #14B8A6;
+    --color-slate: #475569;
+    --color-slate-light: #94A3B8;
+    --color-silver: #E2E8F0;
+    --color-ghost: #F8FAFC;
+    --color-white: #FFFFFF;
+
+    --color-indigo-50: #EEF2FF;
+    --color-indigo-100: #E0E7FF;
+    --color-red-50: #FEF2F2;
+    --color-red-100: #FEE2E2;
+    --color-scarlet-light: #FCA5A5;
+    --color-amber-50: #FFFBEB;
+    --color-amber-100: #FEF3C7;
+    --color-amber-light: #FDE68A;
+    --color-teal-50: #F0FDFA;
+    --color-teal-100: #CCFBF1;
+    --color-teal-light: #5EEAD4;
+  }
+
+  TAILWIND CSS CONFIG
+  --------------------------------------------------------------------
+  // tailwind.config.js
+  module.exports = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            "midnight": "#0D1117",
+            "electric-indigo": "#6366F1",
+            "indigo-deep": "#4338CA",
+            "indigo-light": "#818CF8",
+            "scarlet": "#EF4444",
+            "amber": "#F59E0B",
+            "teal": "#14B8A6",
+            "slate": "#475569",
+            "slate-light": "#94A3B8",
+            "silver": "#E2E8F0",
+            "ghost": "#F8FAFC",
+            "white": "#FFFFFF",
+          },
+        },
+      },
+    },
+  };
+
+========================================================================
+  Built with intention. One bot at a time.
+========================================================================
