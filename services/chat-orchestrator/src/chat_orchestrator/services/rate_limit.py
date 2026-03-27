@@ -38,11 +38,12 @@ class RateLimiter:
             pipeline = self._client.pipeline()
             pipeline.zremrangebyscore(redis_key, 0, window_start)
             pipeline.zcard(redis_key)
-            pipeline.zadd(redis_key, {str(now): now})
             pipeline.expire(redis_key, self.window_seconds)
-            _, count, _, _ = await pipeline.execute()
+            _, count, _ = await pipeline.execute()
             if int(count) >= self.limit:
                 return False, self.window_seconds
+            # Only add the request after confirming we're under the limit
+            await self._client.zadd(redis_key, {str(now): now})
             return True, 0
 
         bucket = self._memory[key]
