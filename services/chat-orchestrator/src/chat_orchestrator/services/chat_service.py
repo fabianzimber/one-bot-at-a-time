@@ -195,9 +195,7 @@ class ChatService:
 
         if self._contains_prompt_injection(message):
             safe_reply = "Die Anfrage wurde aus Sicherheitsgruenden nicht direkt ausgefuehrt."
-            await self.conversation_store.append(
-                conversation_id, Message(role=MessageRole.USER, content=message)
-            )
+            await self.conversation_store.append(conversation_id, Message(role=MessageRole.USER, content=message))
             await self.conversation_store.append(
                 conversation_id, Message(role=MessageRole.ASSISTANT, content=safe_reply)
             )

@@ -233,7 +233,11 @@ async def test_stream_process_message_handles_tool_timeout() -> None:
                 "model": "gpt-5.4",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-1", "name": "query_hr_system", "arguments": {"action": "salary_info", "employee_id": "emp-001"}}
+                    {
+                        "id": "tool-1",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "salary_info", "employee_id": "emp-001"},
+                    }
                 ],
             }
         ],

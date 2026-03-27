@@ -202,11 +202,13 @@ class FakeStreamCompletions:
 
 async def test_stream_complete_yields_deltas_and_done_sentinel():
     router = LLMRouter(primary="gpt-5.4", fallback="gpt-4.1-mini", emergency="gpt-4.1-nano", api_key="live-key")
-    fake_stream = FakeAsyncStream([
-        FakeStreamChunk("Hello "),
-        FakeStreamChunk("World"),
-        FakeStreamChunk(None),  # empty chunk — should be skipped
-    ])
+    fake_stream = FakeAsyncStream(
+        [
+            FakeStreamChunk("Hello "),
+            FakeStreamChunk("World"),
+            FakeStreamChunk(None),  # empty chunk — should be skipped
+        ]
+    )
     completions = FakeStreamCompletions(fake_stream)
     router._client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
 
@@ -250,9 +252,12 @@ async def test_stream_complete_uses_heuristic_when_no_client():
     router = LLMRouter(primary="gpt-5.4", fallback="gpt-4.1-mini", emergency="gpt-4.1-nano", api_key="test-key")
     # _client is None because api_key starts with "test-"
 
-    events = [event async for event in router.stream_complete(
-        messages=[{"role": "user", "content": "Wie viel Urlaub hat emp-003?"}]
-    )]
+    events = [
+        event
+        async for event in router.stream_complete(
+            messages=[{"role": "user", "content": "Wie viel Urlaub hat emp-003?"}]
+        )
+    ]
 
     assert events[-1]["done"] is True
     assert events[-1]["model"] == "heuristic-fallback"

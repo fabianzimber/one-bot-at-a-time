@@ -76,9 +76,7 @@ async def chat_stream(
         message=message,
         conversation_id=conversation_id,
     )
-    return EventSourceResponse(
-        fastapi_request.app.state.streamer(event_source)
-    )
+    return EventSourceResponse(fastapi_request.app.state.streamer(event_source))
 
 
 @router.get("/mock-data/hr-overview", response_model=MockDataOverview)
