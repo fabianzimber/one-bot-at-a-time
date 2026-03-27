@@ -46,7 +46,7 @@ export const ChatSidebar = memo(function ChatSidebar({ statusText }: ChatSidebar
               </p>
               <div>
                 <h1 className="max-w-[14rem] text-3xl font-medium tracking-[-0.08em] text-brand-midnight sm:text-[2.6rem]">
-                  Trenkwalder assistant surface
+                  Assistent
                 </h1>
                 <p className="mt-3 max-w-xs text-sm leading-6 text-brand-slate">
                   Query documents, HR data, and workflows from one precise thread.
