@@ -21,6 +21,8 @@ A production-grade AI chatbot platform with Retrieval-Augmented Generation (RAG)
 
 ---
 
+Current and historical architecture decision log: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
+
 ## 1. Project Overview
 
 **One Bot at a Time** is an internal AI assistant for Trenkwalder, capable of:
@@ -36,16 +38,90 @@ A production-grade AI chatbot platform with Retrieval-Augmented Generation (RAG)
 
 A CLI answers the literal requirement; a full platform demonstrates engineering judgment. The architectural choices below are intentional and defensible — each decision was made to maximise long-term maintainability, scalability, and developer experience.
 
+### Architecture Decisions Made In This Branch
+
+This branch now contains a concrete, working implementation of the target architecture. The list below captures the decisions made during the implementation session and should be treated as the current source of truth when they differ from older aspirational sections later in this document.
+
+1. **Vercel is the active deployment target for all deployable units.**  
+   Decision: the frontend, chat orchestrator, RAG service, and HR service each run as their own Vercel project.  
+   Reasoning: this matches the current operating model, keeps preview deployments cheap and fast, and avoids inventing parallel deployment paths while the product is still evolving.
+
+2. **`services/shared` remains the source of truth, but Vercel runtime bundles vendor it into each Python service.**  
+   Decision: shared config, models, and middleware are still maintained in `services/shared`, but the Vercel-deployed Python services also carry a vendored `src/shared` copy so the serverless bundle resolves imports reliably.  
+   Reasoning: keeping one logical shared package preserves contract consistency, while vendoring avoids the `ModuleNotFoundError: shared` failures that occurred when Vercel omitted the workspace package from the runtime bundle.
+
+3. **The public boundary is the Next.js BFF, not the Python services.**  
+   Decision: browser traffic should go through `POST /api/chat` and `POST /api/chat/stream` in the frontend, which then proxy to the chat orchestrator.  
+   Reasoning: this centralizes BotID checks, public rate limiting, same-origin behavior, and future auth concerns in one place instead of duplicating them across services.
+
+4. **Internal service-to-service calls are protected by `x-internal-api-key`.**  
+   Decision: the frontend BFF and Python services use a shared `INTERNAL_API_KEY`; backend routers accept internal traffic only when the header matches, and preview environments must keep the same key across frontend, chat, RAG, and HR.  
+   Reasoning: this is the lightest viable protection for private service hops on Vercel and is materially better than leaving the internal APIs unauthenticated; mismatched preview keys were enough to break otherwise healthy cross-service traffic.
+
+5. **Chat state and rate limiting must degrade gracefully when Redis is unavailable.**  
+   Decision: the chat orchestrator uses Redis when configured, but falls back to in-memory conversation storage and in-memory rate limiting when Redis is absent or unhealthy.  
+   Reasoning: preview deployments and local development should still work even if Redis is not provisioned yet; correctness degrades in a controlled way instead of the whole service failing cold.
+
+6. **Chat orchestration uses OpenAI tool-calling with bounded fallbacks instead of handwritten intent routing.**  
+   Decision: the orchestrator gives the LLM tool definitions for RAG and HR access, executes returned tool calls, reinjects results, and completes the final answer; when no usable OpenAI key is present, a deterministic fallback path is used so the system still behaves in tests and previews.  
+   Reasoning: tool-calling keeps routing logic flexible while preserving an executable contract between services, and the deterministic fallback avoids making tests depend on live model availability.
+
+7. **The RAG service stores document metadata separately from vector retrieval state.**  
+   Decision: uploaded documents and chunks are persisted via SQLModel-backed records, while vector retrieval is abstracted behind a `VectorStore`.  
+   Reasoning: listing and deleting documents should not depend on vector store internals alone, and this split is the cleanest path toward future `pgvector` adoption.
+
+8. **RAG ingestion is in-memory and Vercel-safe.**  
+   Decision: files are parsed directly from uploaded bytes, chunked in process, embedded, and stored without relying on a persistent local filesystem.  
+   Reasoning: Vercel serverless functions cannot be designed around durable local disk, so ingestion has to work from memory first.
+
+9. **Current preview RAG runs on `chroma` plus SQLite metadata; production intent remains `pgvector`.**  
+   Decision: previews and local runs currently use `RAG_VECTOR_BACKEND=chroma` and SQLite-backed metadata storage, while the longer-term production target remains Postgres/Neon with `pgvector`.  
+   Reasoning: this keeps previews simple and deployable now, while preserving the abstraction boundary required to move to a durable production vector backend later.
+
+10. **HR data is deterministic, seeded, and database-backed.**  
+    Decision: the HR service seeds realistic `de_DE` Faker data into its database on first boot and serves all employee, vacation, salary, timetracking, and org endpoints from that persisted dataset.  
+    Reasoning: seeded persistence is much closer to the eventual production shape than hardcoded mocks and gives the orchestrator stable, queryable semantics.
+
+11. **FastAPI lifespan alone is not trusted as the only initialization path.**  
+    Decision: runtime dependencies such as DB initialization, embedder setup, vector store setup, and chat runtime state are also guarded by explicit lazy initialization helpers.  
+    Reasoning: this makes the services robust in tests and in serverless cold-start paths where relying solely on startup events can be fragile.
+
+12. **Preview environments are branch-specific and chained end-to-end.**  
+    Decision: the Vercel preview for branch `refactor/themeing` is wired so frontend preview targets the chat branch alias, and chat targets the matching RAG and HR branch aliases rather than one-off deployment URLs.  
+    Reasoning: debugging cross-service changes requires the whole request path to stay on the same preview generation, and branch aliases are stable across redeploys while deployment URLs are not.
+
+13. **Current Vercel Python deploys accept runtime dependency installation as a temporary tradeoff.**  
+    Decision: the Python services currently exceed the Vercel bundle limit and therefore deploy with runtime dependency installation enabled.  
+    Reasoning: this is acceptable for getting the system working end-to-end in preview, but it should be treated as operational debt because it increases cold-start and runtime risk.
+
+14. **Vercel CLI deploys must respect project `rootDirectory` settings.**  
+    Decision: the Vercel projects for the frontend and backend services are linked with `rootDirectory`, so CLI deploys must be run from the repository root for linked projects instead of from inside `frontend/` or `services/*`.  
+    Reasoning: deploying from a nested working directory can double-apply the configured `rootDirectory` and fail with invalid paths such as `frontend/frontend`.
+
+15. **The chat UI treats SSE as a wire protocol, not a platform-specific newline assumption.**  
+    Decision: the frontend stream parser normalizes CRLF to LF before splitting SSE events so that Vercel/Fetch-delivered streams are parsed correctly.  
+    Reasoning: the backend stream was healthy, but the UI still failed until the client handled standards-compliant `\r\n` line endings and reliably observed the final `done` event.
+
+The full decision chronology, including superseded choices from the original brief and the reasons for the current branch state, lives in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md).
+
 ---
 
 ## 2. Architecture Overview
+
+Current architecture board:
+
+<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);" width="800" height="450" src="https://embed.figma.com/board/RsHSH7Eo0zcGJXcz3zNqS4/One-Bot-At-A-Time-Architecture?node-id=0-1&embed-host=share" allowfullscreen></iframe>
+
+Direct link: [Figma architecture board](https://embed.figma.com/board/RsHSH7Eo0zcGJXcz3zNqS4/One-Bot-At-A-Time-Architecture?node-id=0-1&embed-host=share)
+
+If your README renderer strips iframe embeds, use the direct link above. For the current operational source of truth, see [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md).
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                        BROWSER                          │
 │           Next.js 16 (App Router) + Tailwind v4         │
 │           + shadcn/ui — Minimal, Accessible             │
-│           Deployed: Vercel / Fly.io static              │
+│           Deployed: Vercel                              │
 └──────────────────────┬──────────────────────────────────┘
                        │ HTTPS / TLS 1.3
                        ▼
@@ -346,6 +422,8 @@ This approach keeps business logic in the LLM rather than in fragile intent-clas
 
 ## 7. Infrastructure & Deployment
 
+Note: the detailed Fly.io discussion below reflects an earlier deployment target from the design phase. The implemented branch state runs the frontend, chat orchestrator, RAG service, and HR service as separate Vercel projects. See [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) for the supersession rationale and current deployment model.
+
 ### Local Development
 
 ```bash
@@ -367,7 +445,7 @@ chromadb           8004      →  8000
 
 All services share a Docker network and communicate by container name (e.g., `http://chat-orchestrator:8000`).
 
-### Production: Fly.io
+### Historical Production Target: Fly.io (Superseded)
 
 Each service is deployed independently to Fly.io in the `fra` (Frankfurt) region. Fly.io was selected over AWS/GCP for the following reasons:
 

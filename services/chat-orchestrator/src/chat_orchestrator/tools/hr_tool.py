@@ -32,6 +32,10 @@ class HRTool(BaseTool):
                         "type": "string",
                         "description": "Die Mitarbeiter-ID (optional)",
                     },
+                    "employee_name": {
+                        "type": "string",
+                        "description": "Mitarbeitername oder eindeutiger Teilname wie Vorname oder Nachname, wenn keine ID bekannt ist (optional)",
+                    },
                     "parameters": {
                         "type": "object",
                         "description": "Zusaetzliche Parameter fuer die Aktion",

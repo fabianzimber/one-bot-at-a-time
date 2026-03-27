@@ -16,6 +16,10 @@ class Settings(BaseServiceSettings):
 
     service_name: str = "rag-service"
 
+    # Storage
+    vector_backend: str = "chroma"
+    database_url: str = "sqlite+aiosqlite:///./rag_data.db"
+
     # ChromaDB
     chroma_host: str = "localhost"
     chroma_port: int = 8004

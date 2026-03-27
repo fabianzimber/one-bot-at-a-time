@@ -23,6 +23,8 @@ class Settings(BaseServiceSettings):
     # Internal service URLs
     rag_service_url: str = "http://localhost:8002"
     hr_service_url: str = "http://localhost:8003"
+    rag_service_share_token: str = ""
+    hr_service_share_token: str = ""
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

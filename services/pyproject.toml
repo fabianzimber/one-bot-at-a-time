@@ -4,9 +4,21 @@ version = "0.1.0"
 description = "Trenkwalder AI Assistant — Production-Grade Microservice Platform"
 requires-python = ">=3.13"
 readme = "README.md"
+dependencies = [
+    "shared",
+    "chat-orchestrator",
+    "rag-service",
+    "hr-service",
+]
 
 [tool.uv.workspace]
 members = ["shared", "chat-orchestrator", "rag-service", "hr-service"]
+
+[tool.uv.sources]
+shared = { workspace = true }
+chat-orchestrator = { workspace = true }
+rag-service = { workspace = true }
+hr-service = { workspace = true }
 
 [dependency-groups]
 dev = [

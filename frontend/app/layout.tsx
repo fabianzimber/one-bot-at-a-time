@@ -27,8 +27,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
-  themeColor: "#0D1117",
+  colorScheme: "light",
+  themeColor: "#FFFFFF",
 };
 
 export default function RootLayout({
@@ -36,23 +36,31 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const protectedRoutes = [
+    {
+      path: "/api/chat",
+      method: "POST" as const,
+    },
+    {
+      path: "/api/chat/stream",
+      method: "POST" as const,
+    },
+    {
+      path: "/api/documents",
+      method: "POST" as const,
+    },
+  ];
+
   return (
     <html
       lang="de"
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} dark h-full scroll-smooth antialiased`}
+      className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} h-full scroll-smooth antialiased`}
     >
       <head>
-        <BotIdClient
-          protect={[
-            {
-              path: "/api/*",
-              method: "POST",
-            },
-          ]}
-        />
+        <BotIdClient protect={protectedRoutes} />
       </head>
-      <body className="min-h-full bg-background text-foreground selection:bg-brand-electric-indigo/35 selection:text-brand-white">
+      <body className="min-h-full bg-background text-foreground selection:bg-brand-electric-indigo/20 selection:text-brand-midnight">
         {children}
       </body>
     </html>

@@ -5,7 +5,10 @@ description = "Chat Orchestrator — LLM routing, tool use, and streaming for Tr
 requires-python = ">=3.13"
 dependencies = [
     "shared",
+    "fastapi>=0.135",
     "openai>=2.30",
+    "pydantic>=2.12",
+    "pydantic-settings>=2.8",
     "redis>=7.1",
     "httpx>=0.28",
     "sse-starlette>=2.2",
