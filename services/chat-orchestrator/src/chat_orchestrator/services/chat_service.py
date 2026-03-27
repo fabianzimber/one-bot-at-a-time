@@ -160,7 +160,6 @@ class ChatService:
             if direct_tool_message:
                 assistant_message = direct_tool_message
                 break
-            continue
         else:
             assistant_message = "Die Anfrage konnte nach mehreren Tool-Schritten nicht abgeschlossen werden."
 

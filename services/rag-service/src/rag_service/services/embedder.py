@@ -18,11 +18,16 @@ class Embedder:
         logger.info("Embedder initialized", extra={"model": model})
 
     def _fallback_embedding(self, text: str, dimensions: int = 1536) -> list[float]:
-        digest = hashlib.sha256(text.encode("utf-8")).digest()
-        values = []
-        for index in range(dimensions):
-            byte = digest[index % len(digest)]
-            values.append(((byte / 255) * 2) - 1)
+        """Generate a deterministic pseudo-embedding by hashing successive blocks."""
+        values: list[float] = []
+        block = 0
+        while len(values) < dimensions:
+            digest = hashlib.sha256(f"{text}:{block}".encode()).digest()
+            for byte in digest:
+                if len(values) >= dimensions:
+                    break
+                values.append(((byte / 255) * 2) - 1)
+            block += 1
         return values
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:

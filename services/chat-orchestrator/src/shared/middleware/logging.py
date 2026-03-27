@@ -1,5 +1,6 @@
 """Structured JSON logging setup for all services."""
 
+import json
 import logging
 import sys
 from datetime import UTC, datetime
@@ -11,8 +12,6 @@ class JSONFormatter(logging.Formatter):
     """Outputs log records as single-line JSON, including extra fields."""
 
     def format(self, record: logging.LogRecord) -> str:
-        import json
-
         log_entry = {
             "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
