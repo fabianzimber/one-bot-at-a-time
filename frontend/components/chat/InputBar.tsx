@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { Paperclip, SendHorizontal, Sparkles, X } from "lucide-react";
 
 import { getRandomDemoPrompt } from "@/lib/demo-prompts";
@@ -10,14 +10,11 @@ type InputBarProps = {
   disabled?: boolean;
 };
 
-export function InputBar({ onSubmit, disabled = false }: InputBarProps) {
+export const InputBar = memo(function InputBar({ onSubmit, disabled = false }: InputBarProps) {
   const [message, setMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const canSubmit = useMemo(() => {
-    return !disabled && (message.trim().length > 0 || selectedFile !== null);
-  }, [disabled, message, selectedFile]);
+  const canSubmit = !disabled && (message.trim().length > 0 || selectedFile !== null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -128,4 +125,4 @@ export function InputBar({ onSubmit, disabled = false }: InputBarProps) {
       </div>
     </form>
   );
-}
+});

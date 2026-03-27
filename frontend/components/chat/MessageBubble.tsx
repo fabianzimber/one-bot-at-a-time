@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Bot, UserRound } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -8,7 +9,11 @@ type MessageBubbleProps = {
   pending?: boolean;
 };
 
-export function MessageBubble({ role, content, pending = false }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({
+  role,
+  content,
+  pending = false,
+}: MessageBubbleProps) {
   const isUser = role === "user";
 
   return (
@@ -54,4 +59,4 @@ export function MessageBubble({ role, content, pending = false }: MessageBubbleP
       </div>
     </div>
   );
-}
+});
