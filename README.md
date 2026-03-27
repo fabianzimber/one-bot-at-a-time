@@ -1,4 +1,4 @@
-<img src="https://github.com/fabianzimber/one-bot-at-a-time/blob/main/banner.png">
+<img src="https://github.com/fabianzimber/one-bot-at-a-time/blob/main/banner3.png">
 
 # One Bot at a Time
 
