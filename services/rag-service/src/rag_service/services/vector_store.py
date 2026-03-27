@@ -77,7 +77,11 @@ class VectorStore:
         """Add document chunks to the vector store."""
         if self.backend == "chroma":
             assert self._collection is not None
-            self._collection.add(ids=ids, documents=texts, embeddings=embeddings, metadatas=metadatas)
+            sanitized_metadatas = [
+                {key: value for key, value in metadata.items() if value is not None}
+                for metadata in metadatas
+            ]
+            self._collection.add(ids=ids, documents=texts, embeddings=embeddings, metadatas=sanitized_metadatas)
 
         session.add_all(
             [

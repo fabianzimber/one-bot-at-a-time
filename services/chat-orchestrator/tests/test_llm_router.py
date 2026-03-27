@@ -1,6 +1,7 @@
 """Tests for LLM router service logic."""
 
 import time
+from types import SimpleNamespace
 
 from chat_orchestrator.services.llm_router import LLMRouter
 
@@ -88,3 +89,71 @@ def test_register_failure_opens_circuit_after_three_errors():
 
     assert provider.enabled is False
     assert provider.disabled_until > time.time()
+
+
+class FakeCompletions:
+    def __init__(self, responses: list[object]) -> None:
+        self.responses = list(responses)
+        self.models: list[str] = []
+
+    async def create(self, *, model: str, messages: list[dict], tools=None, tool_choice=None):
+        del messages, tools, tool_choice
+        self.models.append(model)
+        current = self.responses.pop(0)
+        if isinstance(current, Exception):
+            raise current
+        return current
+
+
+def build_openai_response(message: str) -> object:
+    return SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(
+                    content=message,
+                    tool_calls=[],
+                )
+            )
+        ]
+    )
+
+
+async def test_complete_retries_with_lower_priority_provider_after_primary_failure():
+    router = LLMRouter(
+        primary="gpt-5.4",
+        fallback="gpt-4.1-mini",
+        emergency="gpt-4.1-nano",
+        api_key="live-key",
+    )
+    router.providers[0].failure_count = 2
+    router.providers[0].last_failure_at = time.time()
+    completions = FakeCompletions([RuntimeError("primary unavailable"), build_openai_response("Fallback answer")])
+    router._client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+
+    response = await router.complete(messages=[{"role": "user", "content": "Hallo"}], tools=[])
+
+    assert response["model"] == "gpt-4.1-mini"
+    assert response["message"] == "Fallback answer"
+    assert completions.models == ["gpt-5.4", "gpt-4.1-mini"]
+
+
+async def test_complete_uses_heuristic_response_when_no_provider_remains_available():
+    router = LLMRouter(
+        primary="gpt-5.4",
+        fallback="gpt-4.1-mini",
+        emergency="gpt-4.1-nano",
+        api_key="live-key",
+    )
+    router.providers[0].failure_count = 2
+    router.providers[0].last_failure_at = time.time()
+    router.providers[1].enabled = False
+    router.providers[1].disabled_until = time.time() + 120
+    router.providers[2].enabled = False
+    router.providers[2].disabled_until = time.time() + 120
+    completions = FakeCompletions([RuntimeError("all unavailable")])
+    router._client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+
+    response = await router.complete(messages=[{"role": "user", "content": "Wie viele Urlaubstage hat Frau Dowerg?"}])
+
+    assert response["model"] == "heuristic-fallback"
+    assert response["tool_calls"][0]["arguments"]["employee_name"] == "Frau Dowerg"

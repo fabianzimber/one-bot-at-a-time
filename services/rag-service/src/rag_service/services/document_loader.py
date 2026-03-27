@@ -43,7 +43,7 @@ async def load_document(filename: str, content: bytes) -> LoadedDocument:
     if ext not in SUPPORTED_EXTENSIONS:
         raise ValueError(f"Unsupported file type: {ext}")
 
-    logger.info("Loading document", extra={"filename": filename, "type": ext})
+    logger.info("Loading document", extra={"document_filename": filename, "type": ext})
 
     if ext in {".txt", ".md"}:
         return LoadedDocument(sections=[DocumentSection(text=_decode_text(content))])

@@ -15,10 +15,12 @@ _init_lock = asyncio.Lock()
 
 
 async def ensure_runtime_ready(app: FastAPI) -> None:
+    await ensure_database_ready()
     if hasattr(app.state, "embedder") and hasattr(app.state, "vector_store") and hasattr(app.state, "settings"):
         return
 
     async with _init_lock:
+        await ensure_database_ready()
         if hasattr(app.state, "embedder") and hasattr(app.state, "vector_store") and hasattr(app.state, "settings"):
             return
 

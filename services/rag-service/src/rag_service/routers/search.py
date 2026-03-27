@@ -4,7 +4,6 @@ import logging
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from rag_service.database import get_session_factory
 from rag_service.runtime import ensure_runtime_ready

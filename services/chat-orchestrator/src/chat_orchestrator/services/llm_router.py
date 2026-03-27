@@ -15,7 +15,7 @@ EMPLOYEE_NAME_PATTERN = re.compile(
     r"(?:von|fuer|für|hat|ist|bei)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)"
 )
 SINGLE_NAME_CONTEXT_PATTERN = re.compile(
-    r"(?:von|fuer|für|hat|ist|bei)\s+(?:Frau|Herr\s+)?([A-ZÄÖÜ][\wÄÖÜäöüß-]+)(?:\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+))?"
+    r"(?:von|fuer|für|hat|ist|bei)\s+(?:(?:Frau|Herr)\s+)?([A-ZÄÖÜ][\wÄÖÜäöüß-]+)(?:\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+))?"
 )
 HONORIFIC_NAME_PATTERN = re.compile(r"\b(?:Frau|Herr)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\b")
 QUESTION_WORDS = {"wie", "wieviele", "wieviel", "welche", "zeige", "suche", "fasse"}

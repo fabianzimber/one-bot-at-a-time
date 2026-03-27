@@ -5,7 +5,6 @@ import logging
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlmodel import delete, select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from rag_service.database import DocumentRecord, get_session_factory
 from rag_service.runtime import ensure_runtime_ready

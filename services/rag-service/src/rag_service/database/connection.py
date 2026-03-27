@@ -48,7 +48,7 @@ async def ensure_database_ready() -> None:
 
 async def get_session() -> AsyncGenerator[AsyncSession]:
     await ensure_database_ready()
-    async with get_session_factory() as session:
+    async with get_session_factory()() as session:
         yield session
 
 

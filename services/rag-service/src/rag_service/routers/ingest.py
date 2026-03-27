@@ -5,7 +5,6 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from rag_service.database import DocumentRecord, get_session_factory
 from rag_service.runtime import ensure_runtime_ready
@@ -29,8 +28,8 @@ class IngestResponse(BaseModel):
 async def ingest_document(request: Request, file: UploadFile = upload_file) -> IngestResponse:
     """Upload and process a document for RAG."""
     await ensure_runtime_ready(request.app)
-    logger.info("Document upload received", extra={"filename": file.filename})
     filename = file.filename or "unknown"
+    logger.info("Document upload received", extra={"document_filename": filename})
     suffix = f".{filename.rsplit('.', 1)[-1].lower()}" if "." in filename else ""
     if suffix not in SUPPORTED_EXTENSIONS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
