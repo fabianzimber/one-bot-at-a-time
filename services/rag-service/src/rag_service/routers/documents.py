@@ -43,6 +43,7 @@ async def list_documents(request: Request) -> list[DocumentInfo]:
 @router.delete("/documents/{document_id}")
 async def delete_document(document_id: str, request: Request) -> dict:
     """Delete a document and its chunks from the index."""
+    await ensure_runtime_ready(request.app)
     logger.info("Document deletion requested", extra={"document_id": document_id})
 
     session_factory = get_session_factory()
