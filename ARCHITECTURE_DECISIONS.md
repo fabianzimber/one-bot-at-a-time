@@ -1,6 +1,6 @@
 # Architecture Decisions
 
-This document is the architecture decision log for `one-bot-at-a-time` on branch `refactor/themeing` as of March 27, 2026.
+This document is the architecture decision log for `one-bot-at-a-time` on branch `main` as of March 27, 2026.
 
 It exists because the repository currently contains three different layers of architectural intent:
 
@@ -76,7 +76,7 @@ When these sources conflict, the implemented branch state wins for deployment, d
 
 - Historical decision: the monorepo included `services/shared` as a normal shared package.
 - Current decision: `services/shared` remains the source of truth for shared code, but it is not deployed as a separate service.
-- Why it changed: the shared package has no independent runtime responsibility. Deploying it separately would add complexity without creating a real boundary. For Vercel reliability, each Python service vendors a `src/shared` copy into its serverless bundle.
+- Why it changed: the shared package has no independent runtime responsibility. Deploying it separately would add complexity without creating a real boundary. For Vercel reliability, each Python service vendors a `src/shared` copy into its serverless bundle. A compatibility entrypoint still exists for tests, but it is not part of the active four-project deployment model.
 
 ### 10. Preview environments optimize for deployability, not final production persistence
 
@@ -103,7 +103,7 @@ When these sources conflict, the implemented branch state wins for deployment, d
 
 ### 13. The public boundary is the frontend BFF
 
-- Current decision: browsers should call `POST /api/chat` and `POST /api/chat/stream` on the frontend, not the Python services directly.
+- Current decision: browsers should call `POST /api/chat`, `POST /api/chat/stream`, and `POST /api/documents` on the frontend, not the Python services directly.
 - Why: this keeps public concerns in one place:
   - BotID verification
   - future user auth
@@ -141,44 +141,49 @@ When these sources conflict, the implemented branch state wins for deployment, d
 - Current decision: the HR service seeds realistic `de_DE` Faker data on first boot and serves employee, vacation, salary, time-tracking, and org responses from persisted rows.
 - Why: persisted seeded data behaves like a small internal system and is much more useful for orchestration, demos, and tests than hardcoded response stubs.
 
-### 20. SSE must be treated as a wire protocol, not as a platform-specific implementation detail
+### 20. HR queries accept human-readable employee references and resolve IDs internally
+
+- Current decision: frontend prompts, LLM tool calls, and chat fallbacks should prefer human-readable employee references such as first names, last names, or forms like `Frau Dowerg`; the chat orchestrator resolves those references to stable employee IDs before calling the HR service.
+- Why: opaque IDs like `emp-001` are implementation details and make the assistant feel artificial. Keeping names at the conversational boundary improves demos and usability, while preserving the HR service's stable ID-based API behind the orchestrator.
+
+### 21. SSE must be treated as a wire protocol, not as a platform-specific implementation detail
 
 - Current decision: the frontend normalizes CRLF line endings before splitting SSE frames.
 - Why: the preview deployment exposed a real integration issue where the backend stream was correct but the browser client still failed. The fix belongs in the client because standards-compliant SSE can arrive with `\r\n`.
 
-### 21. Vercel `rootDirectory` settings are part of the deployment contract
+### 22. Vercel `rootDirectory` settings are part of the deployment contract
 
 - Current decision: CLI deploys must be executed from the repository root for linked projects that already define `rootDirectory`.
 - Why: deploying from nested directories caused paths like `frontend/frontend` and equivalent backend failures. This is now an operational rule, not a suggestion.
 
-### 22. Large Python bundles are accepted as temporary operational debt
+### 23. Large Python bundles are accepted as temporary operational debt
 
 - Current decision: current Vercel Python deployments may trigger runtime dependency installation because the bundle exceeds Vercel's direct packaging limits.
 - Why: this was accepted to get the system running end-to-end first. It is explicitly debt, not the final desired steady state.
 
 ## Explicitly Rejected Or Deferred Choices
 
-### 23. Do not deploy `services/shared` as a fourth backend
+### 24. Do not deploy `services/shared` as a fourth backend
 
 - Rejected choice: turn shared code into its own service.
 - Why rejected: shared code has no separate runtime responsibility, would add another failure mode, and would force unnecessary network hops for code that should stay in-process.
 
-### 24. Do not expose Python services directly to the browser
+### 25. Do not expose Python services directly to the browser
 
 - Rejected choice: let the frontend call chat, rag, or hr services from the client.
 - Why rejected: this would duplicate public security concerns, leak internal topology, complicate CORS, and make future auth changes harder.
 
-### 25. Do not rely on ephemeral deployment URLs for preview wiring
+### 26. Do not rely on ephemeral deployment URLs for preview wiring
 
 - Rejected choice: manually connect previews via one-off deployment URLs.
 - Why rejected: redeploys invalidate the assumed chain and create configuration drift. Branch aliases are the stable abstraction.
 
-### 26. Do not treat preview persistence as if it were production-grade durability
+### 27. Do not treat preview persistence as if it were production-grade durability
 
 - Rejected choice: imply that SQLite in `/tmp` or preview `chroma` storage is already the durable production answer.
 - Why rejected: that would blur an important operational boundary. The branch is E2E-functional, but durable production persistence remains a clearly separated next step.
 
-### 27. Do not assume Vercel preview protection alone can substitute for internal service auth
+### 28. Do not assume Vercel preview protection alone can substitute for internal service auth
 
 - Rejected choice: rely only on deployment-level protection between services.
 - Why rejected: protected previews complicated internal service hops and did not remove the need for explicit service-to-service authentication. `INTERNAL_API_KEY` remains the dependable mechanism inside the service graph.

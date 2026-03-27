@@ -78,8 +78,7 @@ class VectorStore:
         if self.backend == "chroma":
             assert self._collection is not None
             sanitized_metadatas = [
-                {key: value for key, value in metadata.items() if value is not None}
-                for metadata in metadatas
+                {key: value for key, value in metadata.items() if value is not None} for metadata in metadatas
             ]
             self._collection.add(ids=ids, documents=texts, embeddings=embeddings, metadatas=sanitized_metadatas)
 

@@ -1,5 +1,7 @@
 # TRENKWALDER AI CHATBOT — Claude Project Brief
 
+> Historical design brief only. This file preserves the original proposal and still contains superseded assumptions such as AWS Amplify/Fly.io deployment options, S3-oriented storage ideas, and earlier version targets. For the implemented branch state, use [README.md](./README.md), [AGENTS.md](./AGENTS.md), and [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
 ## Die Aufgabe (Original)
 
 Einen **Chatbot mit RAG** (Retrieval Augmented Generation) bauen, der:

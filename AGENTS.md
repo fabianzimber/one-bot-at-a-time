@@ -18,6 +18,7 @@ This file captures the current repo-specific working rules for `one-bot-at-a-tim
 - `services/shared` is not deployed separately; it remains the source of truth, but each Python service currently vendors a `src/shared` copy for Vercel runtime reliability.
 - Public browser traffic should enter via the frontend BFF, not by calling Python services directly.
 - Public chat entrypoints are `POST /api/chat` and `POST /api/chat/stream`.
+- Public document upload entrypoint is `POST /api/documents`.
 - Internal service hops use `x-internal-api-key` backed by `INTERNAL_API_KEY`, and preview envs must keep the same key across frontend, chat, rag, and hr.
 - Chat runtime uses Redis when available and in-memory fallbacks otherwise.
 - RAG previews currently use `chroma` plus SQLite metadata storage; production intent remains `pgvector`.
@@ -47,6 +48,8 @@ Important:
 
 - `CHAT_ORCHESTRATOR_URL`
 - `CHAT_ORCHESTRATOR_SHARE_TOKEN`
+- `RAG_SERVICE_URL`
+- `RAG_SERVICE_SHARE_TOKEN`
 - `INTERNAL_API_KEY`
 
 ### Chat Orchestrator
@@ -67,6 +70,9 @@ Important:
 - `INTERNAL_API_KEY`
 - `RAG_VECTOR_BACKEND`
 - `RAG_DATABASE_URL`
+- `RAG_CHROMA_HOST`
+- `RAG_CHROMA_PORT`
+- `RAG_CHROMA_COLLECTION`
 - `CORS_ORIGINS`
 - `LOG_LEVEL`
 
