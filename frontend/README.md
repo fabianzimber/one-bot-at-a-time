@@ -53,13 +53,15 @@ Die Startseite ist bewusst als minimalistische Work-in-Progress-Landing aufgebau
 Das Frontend ist in diesem Branch nicht nur UI, sondern auch die oeffentliche BFF-Schicht.
 
 - `POST /api/chat` proxyt zum Chat-Orchestrator
-- `GET /api/chat/stream` proxyt SSE zum Chat-Orchestrator
+- `POST /api/chat/stream` proxyt SSE zum Chat-Orchestrator
 - BotID-Pruefung passiert am öffentlichen Rand im Frontend
 - interne Weitergabe an die Python-Services erfolgt mit `x-internal-api-key`
+- der SSE-Client normalisiert CRLF-Streams, damit Vercel-konformes Event-Framing sauber verarbeitet wird
 
 Wichtige Server-Env-Variablen:
 
 - `CHAT_ORCHESTRATOR_URL`
+- `CHAT_ORCHESTRATOR_SHARE_TOKEN`
 - `INTERNAL_API_KEY`
 
 Die beabsichtigte Preview-Kette lautet:
@@ -68,4 +70,4 @@ Die beabsichtigte Preview-Kette lautet:
 Frontend Preview -> Chat Preview -> RAG Preview / HR Preview
 ```
 
-Wenn sich eine Preview-URL des Chat-Orchestrators aendert, muss `CHAT_ORCHESTRATOR_URL` im entsprechenden Vercel-Preview-Environment mitgezogen werden.
+Fuer branch-stabile Vorschauen sollte `CHAT_ORCHESTRATOR_URL` auf den Chat-Branch-Alias zeigen, nicht auf eine einmalige Deployment-URL. Wenn sich der interne Preview-Key aendert, muss `INTERNAL_API_KEY` konsistent mit den Python-Services mitgezogen werden.

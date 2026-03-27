@@ -15,13 +15,16 @@ This file captures the current repo-specific working rules for `one-bot-at-a-tim
 ## Current Architecture Decisions
 
 - Vercel is the active deployment target for the frontend, chat, rag, and hr projects.
-- `services/shared` is not deployed separately.
+- `services/shared` is not deployed separately; it remains the source of truth, but each Python service currently vendors a `src/shared` copy for Vercel runtime reliability.
 - Public browser traffic should enter via the frontend BFF, not by calling Python services directly.
-- Internal service hops use `x-internal-api-key` backed by `INTERNAL_API_KEY`.
+- Public chat entrypoints are `POST /api/chat` and `POST /api/chat/stream`.
+- Internal service hops use `x-internal-api-key` backed by `INTERNAL_API_KEY`, and preview envs must keep the same key across frontend, chat, rag, and hr.
 - Chat runtime uses Redis when available and in-memory fallbacks otherwise.
 - RAG previews currently use `chroma` plus SQLite metadata storage; production intent remains `pgvector`.
 - HR data is seeded into the DB on first boot and then served from persisted records.
 - Service initialization must remain safe for tests and Vercel cold starts; do not move back to startup-only assumptions.
+- Branch previews should prefer Vercel branch aliases over ephemeral deployment URLs.
+- Frontend SSE parsing assumes CRLF-normalized events; keep the stream contract compatible with standard SSE framing.
 
 ## Deployment Layout
 
@@ -34,15 +37,16 @@ There are four Vercel projects:
 
 Important:
 
-- These backend Vercel projects rely on `rootDirectory` in project settings.
+- The frontend and backend Vercel projects rely on `rootDirectory` in project settings.
 - To deploy them from CLI, link the repo root to the target Vercel project first, then run `vercel deploy -y` from the repo root.
-- Deploying from inside `services/chat-orchestrator`, `services/rag-service`, or `services/hr-service` can double-apply the `rootDirectory` and fail.
+- Deploying from inside `frontend/`, `services/chat-orchestrator`, `services/rag-service`, or `services/hr-service` can double-apply the `rootDirectory` and fail.
 
 ## Environment Contracts
 
 ### Frontend
 
 - `CHAT_ORCHESTRATOR_URL`
+- `CHAT_ORCHESTRATOR_SHARE_TOKEN`
 - `INTERNAL_API_KEY`
 
 ### Chat Orchestrator
@@ -51,6 +55,8 @@ Important:
 - `REDIS_URL`
 - `CHAT_RAG_SERVICE_URL`
 - `CHAT_HR_SERVICE_URL`
+- `CHAT_RAG_SERVICE_SHARE_TOKEN`
+- `CHAT_HR_SERVICE_SHARE_TOKEN`
 - `INTERNAL_API_KEY`
 - `CORS_ORIGINS`
 - `LOG_LEVEL`
@@ -75,11 +81,11 @@ Important:
 
 For this branch, previews are expected to be chained:
 
-- frontend preview -> chat preview
-- chat preview -> rag preview
-- chat preview -> hr preview
+- frontend branch alias -> chat branch alias
+- chat branch alias -> rag branch alias
+- chat branch alias -> hr branch alias
 
-If you redeploy one service and its preview URL changes, update the upstream preview env vars before treating the chain as current.
+If you redeploy one service, keep upstream preview env vars pointing at the branch alias instead of a one-off deployment URL. If you change the preview `INTERNAL_API_KEY`, update it consistently across all four projects before treating the chain as current.
 
 ## Development Commands
 
