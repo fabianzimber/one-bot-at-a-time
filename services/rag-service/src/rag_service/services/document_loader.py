@@ -61,4 +61,4 @@ async def load_document(filename: str, content: bytes) -> LoadedDocument:
         text = "\n".join(paragraph.text for paragraph in document.paragraphs if paragraph.text.strip())
         return LoadedDocument(sections=[DocumentSection(text=text)])
 
-    raise ValueError(f"Unsupported file type: {ext}")
+    raise AssertionError(f"Missing handler for supported extension: {ext}")

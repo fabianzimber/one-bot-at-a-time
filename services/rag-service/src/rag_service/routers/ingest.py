@@ -30,7 +30,9 @@ async def ingest_document(request: Request, file: UploadFile = upload_file) -> I
     await ensure_runtime_ready(request.app)
     filename = file.filename or "unknown"
     logger.info("Document upload received", extra={"document_filename": filename})
-    suffix = f".{filename.rsplit('.', 1)[-1].lower()}" if "." in filename else ""
+    if "." not in filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Filename must include an extension")
+    suffix = f".{filename.rsplit('.', 1)[-1].lower()}"
     if suffix not in SUPPORTED_EXTENSIONS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
 
@@ -49,6 +51,11 @@ async def ingest_document(request: Request, file: UploadFile = upload_file) -> I
         chunk_size=settings.chunk_size,
         overlap=settings.chunk_overlap,
     )
+    if not chunks:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document contains no extractable text",
+        )
     embeddings = await request.app.state.embedder.embed_texts([chunk.text for chunk in chunks])
 
     session_factory = get_session_factory()
