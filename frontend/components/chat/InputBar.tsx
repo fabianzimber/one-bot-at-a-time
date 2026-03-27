@@ -44,78 +44,87 @@ export function InputBar({ onSubmit, disabled = false }: InputBarProps) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex w-full flex-col gap-2 border-t border-brand-slate p-4"
-    >
-      {selectedFile ? (
-        <div className="flex w-fit items-center gap-2 rounded-full border border-brand-slate bg-brand-indigo-deep px-3 py-1 text-xs font-mono text-brand-ghost">
-          <span className="truncate">{selectedFile.name}</span>
+    <form onSubmit={handleSubmit} className="brand-panel border-t border-brand-silver px-5 py-4 sm:px-6">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-3 text-[0.68rem] uppercase tracking-[0.24em]">
+            <span className="font-mono text-brand-electric-indigo">Composer</span>
+            <span className="font-mono text-brand-slate-light">chat / hr / rag</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedFile ? (
+              <div className="flex max-w-full items-center gap-2 border border-brand-silver bg-brand-white px-3 py-2 text-xs text-brand-midnight">
+                <span className="truncate font-mono uppercase tracking-[0.16em] text-brand-slate-light">
+                  {selectedFile.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = "";
+                    }
+                  }}
+                  className="text-brand-slate transition-colors hover:text-brand-midnight"
+                  aria-label="Remove selected file"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={handleInsertDemoPrompt}
+              className="inline-flex h-10 items-center gap-2 border border-brand-midnight px-3 font-mono text-[0.68rem] uppercase tracking-[0.18em] text-brand-midnight transition-colors hover:border-brand-electric-indigo hover:bg-brand-electric-indigo hover:text-brand-white disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Insert demo prompt"
+            >
+              <Sparkles className="size-3.5" />
+              demo prompt
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-[auto_1fr_auto]">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+            aria-label="Upload file"
+          />
+
           <button
             type="button"
-            onClick={() => {
-              setSelectedFile(null);
-              if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-              }
-            }}
-            className="text-brand-slate-light transition-colors hover:text-brand-ghost"
-            aria-label="Remove selected file"
+            disabled={disabled}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex h-12 items-center justify-center gap-2 border border-brand-silver bg-brand-white px-4 text-brand-slate transition-colors hover:border-brand-electric-indigo hover:text-brand-midnight disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Attach file"
           >
-            <X className="size-3.5" />
+            <Paperclip className="size-4" />
+            <span className="font-mono text-[0.68rem] uppercase tracking-[0.2em]">attach</span>
+          </button>
+
+          <input
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            disabled={disabled}
+            placeholder="Write a message"
+            className="h-12 w-full border border-brand-silver bg-brand-white px-4 text-sm text-brand-midnight outline-none placeholder:text-brand-slate-light focus:border-brand-electric-indigo disabled:cursor-not-allowed disabled:opacity-60"
+          />
+
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="inline-flex h-12 items-center justify-center gap-2 border border-brand-electric-indigo bg-brand-electric-indigo px-4 font-mono text-[0.68rem] uppercase tracking-[0.18em] text-brand-white transition-colors hover:bg-brand-indigo-deep disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Send message"
+          >
+            send
+            <SendHorizontal className="size-4" />
           </button>
         </div>
-      ) : null}
-
-      <div className="flex items-center justify-between gap-3 text-[0.68rem] uppercase tracking-[0.22em] text-brand-slate-light">
-        <span className="font-mono">Chat / HR / RAG demos</span>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={handleInsertDemoPrompt}
-          className="inline-flex h-8 items-center gap-2 rounded-full border border-brand-slate bg-brand-midnight px-3 font-mono text-[0.68rem] tracking-[0.18em] text-brand-ghost transition-colors hover:border-brand-electric-indigo hover:text-brand-white disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="Insert demo prompt"
-        >
-          <Sparkles className="size-3.5" />
-          demo
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          onChange={handleFileChange}
-          aria-label="Upload file"
-        />
-
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => fileInputRef.current?.click()}
-          className="inline-flex size-10 items-center justify-center rounded-lg border border-brand-slate bg-brand-midnight text-brand-slate-light transition-colors hover:border-brand-electric-indigo hover:text-brand-ghost disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="Attach file"
-        >
-          <Paperclip className="size-4" />
-        </button>
-
-        <input
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          disabled={disabled}
-          placeholder="Write a message"
-          className="h-10 w-full rounded-lg border border-brand-slate bg-brand-midnight px-3 text-sm text-brand-ghost outline-none placeholder:text-brand-slate-light focus:border-brand-electric-indigo disabled:cursor-not-allowed disabled:opacity-60"
-        />
-
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="inline-flex size-10 items-center justify-center rounded-lg border border-brand-electric-indigo bg-brand-electric-indigo text-brand-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="Send message"
-        >
-          <SendHorizontal className="size-4" />
-        </button>
       </div>
     </form>
   );

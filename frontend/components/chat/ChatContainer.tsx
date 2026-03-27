@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { ArrowUpRight, Bot, DatabaseZap, ShieldCheck, Workflow } from "lucide-react";
 
 import { InputBar } from "@/components/chat/InputBar";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -27,11 +28,39 @@ type StreamEvent =
   | { event: "tool"; data: Record<string, unknown> }
   | { event: "error"; data: { detail?: string; error?: string } };
 
+type WorkspaceTrack = {
+  title: string;
+  detail: string;
+  icon: typeof DatabaseZap;
+  accent: string;
+};
+
 const initialMessages: ChatMessage[] = [
   {
     id: "bot-1",
     role: "bot",
     content: "Welcome. Ask me anything about your documents, workflows, or employee data.",
+  },
+];
+
+const workspaceTracks: WorkspaceTrack[] = [
+  {
+    title: "Document search",
+    detail: "Ground answers in uploaded knowledge with branch-safe retrieval.",
+    icon: DatabaseZap,
+    accent: "bg-brand-electric-indigo",
+  },
+  {
+    title: "HR records",
+    detail: "Inspect seeded employee data without leaving the conversation surface.",
+    icon: ShieldCheck,
+    accent: "bg-brand-teal",
+  },
+  {
+    title: "Workflow handoff",
+    detail: "Keep streaming, uploads, and service hops visible in one thread.",
+    icon: Workflow,
+    accent: "bg-brand-amber",
   },
 ];
 
@@ -276,46 +305,180 @@ export function ChatContainer() {
   };
 
   return (
-    <section className="flex h-[min(86vh,860px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-brand-slate bg-brand-midnight">
-      <header className="flex items-center justify-between border-b border-brand-slate px-4 py-3">
-        <div>
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-brand-slate-light">
-            one-bot-at-a-time
-          </p>
-          <p className="mt-1 text-xs text-brand-slate-light">{statusText}</p>
-        </div>
+    <section className="brand-shell brand-top-rule relative flex min-h-[calc(100svh-2rem)] w-full overflow-hidden border border-brand-silver">
+      <div
+        aria-hidden="true"
+        className="brand-grid-light pointer-events-none absolute inset-0 opacity-70"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-[24%] top-0 h-full w-px bg-linear-to-b from-transparent via-brand-electric-indigo/18 to-transparent"
+      />
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/mock-data"
-            className="hidden rounded-full border border-brand-slate px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.18em] text-brand-slate-light transition-colors hover:border-brand-electric-indigo hover:text-brand-ghost sm:inline-flex"
-          >
-            mock data
-          </Link>
-          {conversationId ? (
-            <p className="hidden font-mono text-[0.68rem] uppercase tracking-[0.18em] text-brand-slate-light sm:block">
-              session {conversationId.slice(0, 8)}
-            </p>
-          ) : null}
-        </div>
-      </header>
+      <div className="relative grid w-full lg:grid-cols-[minmax(18rem,24rem)_1fr]">
+        <aside className="brand-panel flex flex-col justify-between border-b border-brand-silver px-5 py-5 sm:px-6 sm:py-6 lg:border-b-0 lg:border-r">
+          <div className="space-y-8">
+            <header className="animate-rise-in space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-3">
+                  <p className="font-mono text-[0.68rem] uppercase tracking-[0.32em] text-brand-electric-indigo">
+                    one-bot-at-a-time
+                  </p>
+                  <div>
+                    <h1 className="max-w-[14rem] text-3xl font-medium tracking-[-0.08em] text-brand-midnight sm:text-[2.6rem]">
+                      Trenkwalder assistant surface
+                    </h1>
+                    <p className="mt-3 max-w-xs text-sm leading-6 text-brand-slate">
+                      Query documents, HR data, and workflows from one precise thread.
+                    </p>
+                  </div>
+                </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-          {hasMessages
-            ? messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  role={message.role}
-                  content={message.content}
-                  pending={message.pending}
-                />
-              ))
-            : null}
+                <div className="inline-flex size-11 items-center justify-center border border-brand-electric-indigo text-brand-electric-indigo">
+                  <Bot className="size-5" />
+                </div>
+              </div>
+            </header>
+
+            <div className="relative overflow-hidden border border-brand-silver bg-brand-white">
+              <div className="absolute inset-5 border border-brand-silver/60" />
+              <div className="absolute left-1/2 top-1/2 size-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand-electric-indigo/40" />
+              <div className="absolute left-1/2 top-1/2 size-60 -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand-electric-indigo/18 animate-orbit-slow" />
+              <div className="absolute left-1/2 top-1/2 flex size-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand-electric-indigo text-6xl font-medium text-brand-white">
+                1
+              </div>
+              <div className="absolute left-[18%] top-[62%] size-4 rounded-full bg-brand-amber" />
+              <div className="absolute right-[18%] top-[23%] size-6 rounded-full bg-brand-scarlet" />
+              <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 border border-brand-electric-indigo/10" />
+              <div className="relative flex min-h-64 items-end justify-between p-5">
+                <div>
+                  <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-brand-slate-light">
+                    brand axis
+                  </p>
+                  <p className="mt-2 text-sm text-brand-slate">
+                    White canvas, hard edges, indigo signal.
+                  </p>
+                </div>
+                <div className="border border-brand-silver px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.22em] text-brand-electric-indigo">
+                  v1
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="font-mono text-[0.68rem] uppercase tracking-[0.26em] text-brand-slate-light">
+                Active surfaces
+              </p>
+              <div className="border-y border-brand-silver">
+                {workspaceTracks.map((track) => {
+                  const Icon = track.icon;
+
+                  return (
+                    <div
+                      key={track.title}
+                      className="grid grid-cols-[auto_1fr] gap-3 border-b border-brand-silver/80 px-0 py-4 last:border-b-0"
+                    >
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className={`block h-8 w-1 ${track.accent}`} />
+                        <Icon className="size-4 text-brand-midnight" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-brand-midnight">{track.title}</p>
+                        <p className="mt-1 text-sm leading-6 text-brand-slate">{track.detail}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex items-end justify-between gap-4 border-t border-brand-silver pt-4">
+            <Link
+              href="/mock-data"
+              className="inline-flex items-center gap-2 border border-brand-midnight px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.22em] text-brand-midnight transition-colors hover:border-brand-electric-indigo hover:bg-brand-electric-indigo hover:text-brand-white"
+            >
+              mock data
+              <ArrowUpRight className="size-3.5" />
+            </Link>
+
+            <div className="text-right">
+              <p className="font-mono text-[0.68rem] uppercase tracking-[0.22em] text-brand-slate-light">
+                runtime
+              </p>
+              <p className="mt-1 text-sm text-brand-slate">{statusText}</p>
+            </div>
+          </div>
+        </aside>
+
+        <div className="relative flex min-h-0 flex-col">
+          <header className="brand-panel border-b border-brand-silver px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+              <div className="space-y-2">
+                <p className="font-mono text-[0.68rem] uppercase tracking-[0.28em] text-brand-electric-indigo">
+                  conversation surface
+                </p>
+                <div>
+                  <h2 className="text-3xl font-medium tracking-[-0.08em] text-brand-midnight sm:text-4xl">
+                    Ask, upload, inspect.
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-brand-slate">
+                    Use the same session to search documents, inspect seeded HR data, and follow
+                    service activity while the assistant streams.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="border border-brand-silver bg-brand-ghost/70 px-4 py-3">
+                  <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-brand-slate-light">
+                    session
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-brand-midnight">
+                    {conversationId ? conversationId.slice(0, 8) : "not started"}
+                  </p>
+                </div>
+                <div className="border border-brand-silver bg-brand-ghost/70 px-4 py-3">
+                  <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-brand-slate-light">
+                    transport
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-brand-midnight">
+                    {isSubmitting ? "streaming" : "ready"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-8 hidden w-px bg-linear-to-b from-transparent via-brand-electric-indigo/28 to-transparent lg:block"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute right-12 top-10 hidden h-24 w-24 border border-brand-teal/30 animate-drift-line lg:block"
+            />
+
+            <div className="flex h-full overflow-y-auto px-5 py-6 sm:px-6">
+              <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+                {hasMessages
+                  ? messages.map((message) => (
+                      <MessageBubble
+                        key={message.id}
+                        role={message.role}
+                        content={message.content}
+                        pending={message.pending}
+                      />
+                    ))
+                  : null}
+              </div>
+            </div>
+          </div>
+
+          <InputBar onSubmit={handleSubmit} disabled={isSubmitting} />
         </div>
       </div>
-
-      <InputBar onSubmit={handleSubmit} disabled={isSubmitting} />
     </section>
   );
 }

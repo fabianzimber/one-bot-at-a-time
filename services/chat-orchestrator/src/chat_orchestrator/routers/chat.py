@@ -32,11 +32,18 @@ class MockDataOverview(BaseModel):
     rows: list[MockDataRow]
 
 
+def _client_key(request: Request, suffix: str = "") -> str:
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    forwarded_ip = forwarded_for.split(",", 1)[0].strip()
+    base = forwarded_ip or (request.client.host if request.client is not None else "unknown")
+    return f"{base}:{suffix}" if suffix else base
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, fastapi_request: Request) -> ChatResponse:
     """Process a chat message — routes to appropriate tools via LLM."""
     await ensure_runtime_ready(fastapi_request.app)
-    client_key = fastapi_request.headers.get("x-forwarded-for") or fastapi_request.client.host or "unknown"
+    client_key = _client_key(fastapi_request)
     allowed, retry_after = await fastapi_request.app.state.rate_limiter.allow(client_key)
     if not allowed:
         raise HTTPException(
@@ -58,8 +65,7 @@ async def chat_stream(
 ) -> EventSourceResponse:
     """Stream a chat response via Server-Sent Events."""
     await ensure_runtime_ready(fastapi_request.app)
-    client_key = fastapi_request.headers.get("x-forwarded-for") or fastapi_request.client.host or "unknown"
-    allowed, retry_after = await fastapi_request.app.state.rate_limiter.allow(f"{client_key}:stream")
+    allowed, retry_after = await fastapi_request.app.state.rate_limiter.allow(_client_key(fastapi_request, "stream"))
     if not allowed:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

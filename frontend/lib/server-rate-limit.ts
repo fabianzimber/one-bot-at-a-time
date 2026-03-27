@@ -6,6 +6,12 @@ export function allowRequest(key: string, limit = 12, windowSeconds = 60) {
   const requests = buckets.get(key) ?? []
   const active = requests.filter((timestamp) => timestamp > windowStart)
 
+  if (active.length === 0) {
+    buckets.delete(key)
+  } else {
+    buckets.set(key, active)
+  }
+
   if (active.length >= limit) {
     buckets.set(key, active)
     return { allowed: false, retryAfter: windowSeconds }

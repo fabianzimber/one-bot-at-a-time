@@ -93,7 +93,6 @@ class VectorStore:
                 for chunk_id, text, embedding, metadata in zip(ids, texts, embeddings, metadatas, strict=True)
             ]
         )
-        await session.commit()
         logger.info("Documents added", extra={"count": len(ids), "backend": self.backend})
 
     async def search(

@@ -56,9 +56,9 @@ class ChatService:
                 return "Die interne Datenabfrage hat zu lange gedauert. Bitte versuche es gleich noch einmal."
 
             if isinstance(tool_result.data, dict) and tool_result.data.get("kind") == "hr_not_found":
-                employee_id = tool_result.data.get("employee_id", "unbekannt")
+                employee_reference = tool_result.data.get("employee_name") or tool_result.data.get("employee_id") or "unbekannt"
                 return (
-                    f"Ich konnte fuer {employee_id} keinen passenden HR-Datensatz finden. "
+                    f"Ich konnte fuer {employee_reference} keinen passenden HR-Datensatz finden. "
                     "Pruefe die Mitarbeiter-ID oder nutze die Mock-Daten-Seite im Frontend."
                 )
 

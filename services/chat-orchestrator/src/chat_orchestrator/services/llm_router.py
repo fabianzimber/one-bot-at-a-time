@@ -2,12 +2,23 @@
 
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass
 
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
+
+EMPLOYEE_ID_PATTERN = re.compile(r"\b(emp-\d{3})\b", re.IGNORECASE)
+EMPLOYEE_NAME_PATTERN = re.compile(
+    r"(?:von|fuer|für|hat|ist|bei)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)"
+)
+SINGLE_NAME_CONTEXT_PATTERN = re.compile(
+    r"(?:von|fuer|für|hat|ist|bei)\s+(?:Frau|Herr\s+)?([A-ZÄÖÜ][\wÄÖÜäöüß-]+)(?:\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+))?"
+)
+HONORIFIC_NAME_PATTERN = re.compile(r"\b(?:Frau|Herr)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\b")
+QUESTION_WORDS = {"wie", "wieviele", "wieviel", "welche", "zeige", "suche", "fasse"}
 
 
 @dataclass
@@ -85,13 +96,13 @@ class LLMRouter:
             return {"model": "heuristic-fallback", "message": content, "tool_calls": []}
 
         lowered = user_message.lower()
-        employee_id_match = next((token for token in user_message.split() if token.startswith("emp-")), "emp-001")
+        employee_reference = self._extract_employee_reference(user_message)
         if any(keyword in lowered for keyword in ("urlaub", "vacation")):
             return {
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-vacation", "name": "query_hr_system", "arguments": {"action": "vacation_balance", "employee_id": employee_id_match}}
+                    {"id": "tool-vacation", "name": "query_hr_system", "arguments": {"action": "vacation_balance", **employee_reference}}
                 ],
             }
         if any(keyword in lowered for keyword in ("gehalt", "salary", "lohn")):
@@ -99,7 +110,7 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-salary", "name": "query_hr_system", "arguments": {"action": "salary_info", "employee_id": employee_id_match}}
+                    {"id": "tool-salary", "name": "query_hr_system", "arguments": {"action": "salary_info", **employee_reference}}
                 ],
             }
         if any(keyword in lowered for keyword in ("organigramm", "org", "abteilung")):
@@ -115,7 +126,7 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-time", "name": "query_hr_system", "arguments": {"action": "time_tracking", "employee_id": employee_id_match}}
+                    {"id": "tool-time", "name": "query_hr_system", "arguments": {"action": "time_tracking", **employee_reference}}
                 ],
             }
         if any(keyword in lowered for keyword in ("dokument", "richtlinie", "policy", "hochgeladen", "suche")):
@@ -131,6 +142,41 @@ class LLMRouter:
             "message": "Ich bin der interne Trenkwalder Assistant und kann bei Dokumenten- und HR-Fragen helfen.",
             "tool_calls": [],
         }
+
+    def _extract_employee_reference(self, user_message: str) -> dict:
+        employee_id_match = EMPLOYEE_ID_PATTERN.search(user_message)
+        if employee_id_match:
+            return {"employee_id": employee_id_match.group(1).lower()}
+
+        name_match = EMPLOYEE_NAME_PATTERN.search(user_message)
+        if name_match:
+            return {"employee_name": f"{name_match.group(1)} {name_match.group(2)}"}
+
+        single_name_match = SINGLE_NAME_CONTEXT_PATTERN.search(user_message)
+        if single_name_match:
+            names = [part for part in single_name_match.groups() if part]
+            if names:
+                return {"employee_name": " ".join(names)}
+
+        honorific_match = HONORIFIC_NAME_PATTERN.search(user_message)
+        if honorific_match:
+            return {"employee_name": honorific_match.group(1)}
+
+        capitalized_pairs = re.findall(r"\b([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\b", user_message)
+        for first_name, last_name in reversed(capitalized_pairs):
+            if first_name.casefold() in QUESTION_WORDS:
+                continue
+            return {"employee_name": f"{first_name} {last_name}"}
+
+        capitalized_words = re.findall(r"\b([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\b", user_message)
+        for word in reversed(capitalized_words):
+            if word.casefold() in QUESTION_WORDS:
+                continue
+            if word in {"IT", "HR"}:
+                continue
+            return {"employee_name": word}
+
+        return {"employee_id": "emp-001"}
 
     async def complete(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
         """Send a completion request to the active provider."""

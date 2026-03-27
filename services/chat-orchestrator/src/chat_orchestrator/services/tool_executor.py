@@ -1,8 +1,8 @@
 """Executes tool calls returned by the LLM."""
 
 import asyncio
-import json
 import logging
+import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
@@ -11,6 +11,7 @@ from shared.models import ToolCall, ToolResult
 from shared.models.tools import ToolStatus
 
 logger = logging.getLogger(__name__)
+HONORIFICS = {"frau", "herr", "mr", "mrs", "ms"}
 
 
 class ToolExecutor:
@@ -62,14 +63,38 @@ class ToolExecutor:
 
         return response.text or response.reason_phrase or "Unknown error"
 
+    @staticmethod
+    def _normalize_employee_name(employee_name: str) -> str:
+        normalized = re.sub(r"[^\wÄÖÜäöüß-]+", " ", employee_name, flags=re.UNICODE)
+        parts = [part for part in normalized.casefold().split() if part not in HONORIFICS]
+        return " ".join(parts)
+
+    @staticmethod
+    def _payload_summary(payload: object) -> dict[str, object]:
+        if isinstance(payload, dict):
+            if isinstance(payload.get("results"), list):
+                return {"result_count": len(payload["results"])}
+            return {"keys": sorted(payload.keys())[:5]}
+        if isinstance(payload, list):
+            return {"result_count": len(payload)}
+        return {"payload_type": type(payload).__name__}
+
     def _build_hr_not_found_result(
         self,
         *,
         tool_call: ToolCall,
         action: str,
-        employee_id: str,
-        response: httpx.Response,
+        employee_id: str = "",
+        employee_name: str = "",
+        response: httpx.Response | None = None,
+        detail: str | None = None,
     ) -> ToolResult:
+        message = detail
+        if message is None and response is not None:
+            message = self._extract_error_detail(response)
+        if message is None:
+            message = "Employee not found"
+
         return ToolResult(
             tool_call_id=tool_call.id,
             name=tool_call.name,
@@ -78,10 +103,48 @@ class ToolExecutor:
                 "kind": "hr_not_found",
                 "action": action,
                 "employee_id": employee_id,
-                "detail": self._extract_error_detail(response),
+                "employee_name": employee_name,
+                "detail": message,
             },
-            error=self._extract_error_detail(response),
+            error=message,
         )
+
+    async def _resolve_employee_reference(self, employee_id: str, employee_name: str) -> tuple[str, str]:
+        if employee_id:
+            return employee_id, employee_name
+
+        if not employee_name:
+            return "", ""
+
+        response = await self._client.get(
+            self._build_url(self.hr_service_url, "/api/v1/employees", self.hr_service_share_token),
+            headers=self._headers(),
+        )
+        response.raise_for_status()
+
+        normalized_target = self._normalize_employee_name(employee_name)
+        if not normalized_target:
+            return "", employee_name
+
+        exact_matches: list[tuple[str, str]] = []
+        partial_matches: list[tuple[str, str]] = []
+        for employee in response.json():
+            full_name = f"{employee['first_name']} {employee['last_name']}"
+            normalized_full_name = self._normalize_employee_name(full_name)
+            first_name = self._normalize_employee_name(employee["first_name"])
+            last_name = self._normalize_employee_name(employee["last_name"])
+            if normalized_target in {normalized_full_name, first_name, last_name}:
+                exact_matches.append((employee["id"], full_name))
+                continue
+            if normalized_target in normalized_full_name:
+                partial_matches.append((employee["id"], full_name))
+
+        if len(exact_matches) == 1:
+            return exact_matches[0]
+        if len(partial_matches) == 1:
+            return partial_matches[0]
+
+        return "", employee_name
 
     async def get_hr_showcase(self, limit: int = 12) -> dict:
         """Return a compact overview of seeded HR mock data for the frontend."""
@@ -173,8 +236,21 @@ class ToolExecutor:
                 )
 
             action = tool_call.arguments.get("action", "")
-            employee_id = tool_call.arguments.get("employee_id", "emp-001")
+            employee_id = tool_call.arguments.get("employee_id", "")
+            employee_name = tool_call.arguments.get("employee_name", "")
             parameters = tool_call.arguments.get("parameters", {})
+
+            if action in {"vacation_balance", "salary_info", "time_tracking"} or (
+                action == "employee_lookup" and (employee_id or employee_name)
+            ):
+                employee_id, employee_name = await self._resolve_employee_reference(employee_id, employee_name)
+                if not employee_id:
+                    return self._build_hr_not_found_result(
+                        tool_call=tool_call,
+                        action=action,
+                        employee_name=employee_name,
+                        detail=f"Employee {employee_name} not found",
+                    )
 
             if action == "vacation_balance":
                 path = f"/api/v1/employees/{employee_id}/vacation"
@@ -238,12 +314,16 @@ class ToolExecutor:
                     tool_call=tool_call,
                     action=action,
                     employee_id=employee_id,
+                    employee_name=employee_name,
                     response=response,
                 )
 
             response.raise_for_status()
             payload = response.json()
-            logger.info("Tool execution succeeded", extra={"tool": tool_call.name, "payload": json.dumps(payload)})
+            logger.info(
+                "Tool execution succeeded",
+                extra={"tool": tool_call.name, "action": action, **self._payload_summary(payload)},
+            )
             return ToolResult(
                 tool_call_id=tool_call.id,
                 name=tool_call.name,

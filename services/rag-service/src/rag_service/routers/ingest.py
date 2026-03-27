@@ -5,6 +5,7 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from rag_service.database import DocumentRecord, get_session_factory
 from rag_service.runtime import ensure_runtime_ready
@@ -61,7 +62,6 @@ async def ingest_document(request: Request, file: UploadFile = upload_file) -> I
                 uploaded_at=request.app.state.now_factory(),
             )
         )
-        await session.commit()
         await request.app.state.vector_store.add_documents(
             ids=[f"{document_id}-chunk-{chunk.index}" for chunk in chunks],
             texts=[chunk.text for chunk in chunks],
@@ -69,6 +69,7 @@ async def ingest_document(request: Request, file: UploadFile = upload_file) -> I
             metadatas=[chunk.metadata for chunk in chunks],
             session=session,
         )
+        await session.commit()
 
     return IngestResponse(
         document_id=document_id,
