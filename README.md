@@ -1,3 +1,5 @@
+<img src="https://github.com/fabianzimber/one-bot-at-a-time/blob/main/banner.png">
+
 # One Bot at a Time
 
 Trenkwalder AI assistant monorepo with a Next.js 16 frontend/BFF and three FastAPI services for chat orchestration, RAG, and seeded HR data.
