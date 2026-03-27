@@ -31,6 +31,15 @@ def test_chat_validation_empty_message():
     assert response.status_code == 422
 
 
+def test_chat_stream_post_endpoint():
+    response = client.post("/api/v1/chat/stream", json={"message": "Hallo aus dem Stream"})
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert "event: start" in response.text
+    assert "event: done" in response.text
+
+
 def test_direct_tool_message_for_unknown_employee():
     service = ChatService(
         llm_router=None,  # type: ignore[arg-type]

@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from chat_orchestrator.runtime import ensure_runtime_ready
@@ -32,6 +32,11 @@ class MockDataOverview(BaseModel):
     rows: list[MockDataRow]
 
 
+class ChatStreamRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=10_000)
+    conversation_id: str | None = None
+
+
 def _client_key(request: Request, suffix: str = "") -> str:
     forwarded_for = request.headers.get("x-forwarded-for", "")
     forwarded_ip = forwarded_for.split(",", 1)[0].strip()
@@ -58,13 +63,12 @@ async def chat(request: ChatRequest, fastapi_request: Request) -> ChatResponse:
     )
 
 
-@router.get("/chat/stream")
-async def chat_stream(
+async def _stream_chat_response(
     fastapi_request: Request,
-    message: str = Query(..., min_length=1),
-    conversation_id: str | None = Query(default=None),
+    *,
+    message: str,
+    conversation_id: str | None = None,
 ) -> EventSourceResponse:
-    """Stream a chat response via Server-Sent Events."""
     await ensure_runtime_ready(fastapi_request.app)
     allowed, retry_after = await fastapi_request.app.state.rate_limiter.allow(_client_key(fastapi_request, "stream"))
     if not allowed:
@@ -83,6 +87,30 @@ async def chat_stream(
             conversation_id=response.conversation_id,
             message=response.message,
         )
+    )
+
+
+@router.get("/chat/stream")
+async def chat_stream(
+    fastapi_request: Request,
+    message: str = Query(..., min_length=1, max_length=10_000),
+    conversation_id: str | None = Query(default=None),
+) -> EventSourceResponse:
+    """Stream a chat response via Server-Sent Events."""
+    return await _stream_chat_response(
+        fastapi_request,
+        message=message,
+        conversation_id=conversation_id,
+    )
+
+
+@router.post("/chat/stream")
+async def chat_stream_post(chat_request: ChatStreamRequest, fastapi_request: Request) -> EventSourceResponse:
+    """Stream a chat response via Server-Sent Events using a JSON request body."""
+    return await _stream_chat_response(
+        fastapi_request,
+        message=chat_request.message,
+        conversation_id=chat_request.conversation_id,
     )
 
 

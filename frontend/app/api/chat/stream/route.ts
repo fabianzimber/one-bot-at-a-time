@@ -12,6 +12,17 @@ import { allowRequest } from "@/lib/server-rate-limit";
 
 export const runtime = "nodejs";
 
+async function readStreamErrorPayload(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return null;
+  }
+
+  return (await response.json().catch(() => null)) as
+    | { error?: string; detail?: string }
+    | null;
+}
+
 export async function POST(req: Request) {
   const { isBot } = await checkBotId();
   if (isBot) {
@@ -43,38 +54,41 @@ export async function POST(req: Request) {
   }
 
   const backendHeaders = buildInternalHeaders(req);
+  backendHeaders.set("content-type", "application/json");
   const streamUrl = buildServiceUrl(
     getChatOrchestratorUrl(),
     "/api/v1/chat/stream",
     getChatOrchestratorShareToken(),
   );
-  streamUrl.searchParams.set("message", message);
   const conversationId = body.conversation_id?.trim();
-  if (conversationId) {
-    streamUrl.searchParams.set("conversation_id", conversationId);
-  }
 
   try {
     const response = await fetch(streamUrl, {
-      method: "GET",
+      method: "POST",
       headers: backendHeaders,
+      body: JSON.stringify({
+        message,
+        ...(conversationId ? { conversation_id: conversationId } : {}),
+      }),
       cache: "no-store",
     });
 
     if (!response.ok || !response.body) {
+      const payload = await readStreamErrorPayload(response);
       return NextResponse.json(
-        { error: "Streaming backend unavailable" },
+        { error: payload?.error ?? payload?.detail ?? "Streaming backend unavailable" },
         { status: response.status || 502 },
       );
     }
 
+    const streamHeaders = new Headers(response.headers);
+    streamHeaders.set("Cache-Control", "no-cache, no-transform");
+    streamHeaders.set("Content-Type", response.headers.get("content-type") ?? "text/event-stream");
+    streamHeaders.delete("content-length");
+
     return new Response(response.body, {
       status: response.status,
-      headers: {
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-        "Content-Type": "text/event-stream",
-      },
+      headers: streamHeaders,
     });
   } catch {
     return NextResponse.json(
