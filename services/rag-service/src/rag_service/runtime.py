@@ -20,12 +20,10 @@ async def ensure_runtime_ready(app: FastAPI) -> None:
         return
 
     async with _init_lock:
-        await ensure_database_ready()
         if hasattr(app.state, "embedder") and hasattr(app.state, "vector_store") and hasattr(app.state, "settings"):
             return
 
         setup_logging(settings.log_level)
-        await ensure_database_ready()
         app.state.settings = settings
         app.state.now_factory = lambda: datetime.now(UTC)
         app.state.embedder = Embedder(model=settings.embedding_model, api_key=settings.openai_api_key)

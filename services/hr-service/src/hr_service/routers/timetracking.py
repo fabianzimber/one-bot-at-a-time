@@ -39,7 +39,7 @@ async def get_time_tracking(
     session: AsyncSession = session_dependency,
 ) -> TimeTrackingSummary:
     """Get time tracking entries for an employee."""
-    period_start = start or date(2026, 3, 1)
+    period_start = start or date.today().replace(day=1)
     period_end = end or date.today()
     statement = (
         select(TimeEntryRecord)

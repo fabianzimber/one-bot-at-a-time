@@ -136,7 +136,11 @@ async def test_execute_hr_vacation_uses_resolved_employee_name() -> None:
     executor = make_executor()
     client = StubClient()
     employees = [{"id": "emp-007", "first_name": "Rosalie", "last_name": "Ritter"}]
-    client.add_route("GET", exact_path("/api/v1/employees"), lambda *_: build_response("GET", "https://hr.example/api/v1/employees", json_data=employees))
+    client.add_route(
+        "GET",
+        exact_path("/api/v1/employees"),
+        lambda *_: build_response("GET", "https://hr.example/api/v1/employees", json_data=employees),
+    )
     client.add_route(
         "GET",
         exact_path("/api/v1/employees/emp-007/vacation"),
@@ -228,7 +232,11 @@ async def test_get_hr_showcase_returns_named_rows() -> None:
             "manager_id": "emp-001",
         },
     ]
-    client.add_route("GET", exact_path("/api/v1/employees"), lambda *_: build_response("GET", "https://hr.example/api/v1/employees", json_data=employees))
+    client.add_route(
+        "GET",
+        exact_path("/api/v1/employees"),
+        lambda *_: build_response("GET", "https://hr.example/api/v1/employees", json_data=employees),
+    )
     client.add_route(
         "GET",
         exact_path("/vacation"),

@@ -52,9 +52,11 @@ class ConversationStore:
         if self._connected and self._client is not None:
             key = f"conversation:{conversation_id}"
             payload = [message.model_dump_json() for message in messages]
-            await self._client.delete(key)
+            pipeline = self._client.pipeline()
+            pipeline.delete(key)
             if payload:
-                await self._client.rpush(key, *payload)
-                await self._client.expire(key, 86400)
+                pipeline.rpush(key, *payload)
+                pipeline.expire(key, 86400)
+            await pipeline.execute()
             return
         self._memory[conversation_id] = list(messages)

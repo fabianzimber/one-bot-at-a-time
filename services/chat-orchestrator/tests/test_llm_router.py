@@ -66,7 +66,10 @@ def test_fallback_response_uses_tool_payload_when_present():
     response = router._fallback_response(
         [
             {"role": "user", "content": "Fasse das zusammen."},
-            {"role": "tool", "content": '{"data":{"results":[{"chunk_text":"Homeoffice ist zwei Tage pro Woche moeglich."}]}}'},
+            {
+                "role": "tool",
+                "content": '{"data":{"results":[{"chunk_text":"Homeoffice ist zwei Tage pro Woche moeglich."}]}}',
+            },
         ]
     )
 

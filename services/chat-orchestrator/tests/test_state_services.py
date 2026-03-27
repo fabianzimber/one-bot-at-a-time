@@ -10,6 +10,36 @@ from chat_orchestrator.services.streaming import stream_chat_response
 from shared.models import Message, MessageRole
 
 
+class FakeConversationPipeline:
+    def __init__(self, store: "FakeConversationRedis") -> None:
+        self._store = store
+        self._commands: list[tuple[str, tuple[object, ...]]] = []
+
+    def delete(self, key: str) -> None:
+        self._commands.append(("delete", (key,)))
+
+    def rpush(self, key: str, *values: str) -> None:
+        self._commands.append(("rpush", (key, *values)))
+
+    def expire(self, key: str, ttl: int) -> None:
+        self._commands.append(("expire", (key, ttl)))
+
+    async def execute(self) -> list[object]:
+        results: list[object] = []
+        for cmd, args in self._commands:
+            if cmd == "delete":
+                self._store.store.pop(str(args[0]), None)
+                results.append(0)
+            elif cmd == "rpush":
+                key = str(args[0])
+                self._store.store.setdefault(key, []).extend(str(v) for v in args[1:])
+                results.append(len(self._store.store[key]))
+            elif cmd == "expire":
+                self._store.expirations[str(args[0])] = int(args[1])
+                results.append(True)
+        return results
+
+
 class FakeConversationRedis:
     def __init__(self, *, fail_ping: bool = False) -> None:
         self.fail_ping = fail_ping
@@ -36,6 +66,9 @@ class FakeConversationRedis:
 
     async def delete(self, key: str) -> None:
         self.store.pop(key, None)
+
+    def pipeline(self) -> FakeConversationPipeline:
+        return FakeConversationPipeline(self)
 
 
 class FakePipeline:

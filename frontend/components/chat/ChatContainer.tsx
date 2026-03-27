@@ -296,6 +296,9 @@ export function ChatContainer() {
 
       await streamResponse(normalizedMessage);
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
       const messageText = error instanceof Error ? error.message : "Request failed";
       appendBotMessage(messageText);
       setStatusText("Request failed");

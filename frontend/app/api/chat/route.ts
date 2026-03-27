@@ -31,7 +31,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = await req.json();
+  const body = (await req.json()) as { message?: string; conversation_id?: string; stream?: boolean };
+  const message = body.message?.trim();
+  if (!message) {
+    return NextResponse.json(
+      { error: "Missing message in request body" },
+      { status: 400 },
+    );
+  }
+
   const backendHeaders = buildInternalHeaders(req);
   backendHeaders.set("content-type", "application/json");
 

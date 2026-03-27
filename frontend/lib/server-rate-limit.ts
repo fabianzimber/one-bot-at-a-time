@@ -1,4 +1,19 @@
 const buckets = new Map<string, number[]>()
+const MAX_BUCKETS = 10_000
+
+function pruneStale(windowStart: number) {
+  if (buckets.size <= MAX_BUCKETS) {
+    return
+  }
+  for (const [key, timestamps] of buckets) {
+    if (timestamps.every((ts) => ts <= windowStart)) {
+      buckets.delete(key)
+    }
+    if (buckets.size <= MAX_BUCKETS) {
+      break
+    }
+  }
+}
 
 export function allowRequest(key: string, limit = 12, windowSeconds = 60) {
   const now = Date.now()
@@ -11,6 +26,8 @@ export function allowRequest(key: string, limit = 12, windowSeconds = 60) {
   } else {
     buckets.set(key, active)
   }
+
+  pruneStale(windowStart)
 
   if (active.length >= limit) {
     buckets.set(key, active)

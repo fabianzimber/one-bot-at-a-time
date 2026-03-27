@@ -11,9 +11,7 @@ from openai import AsyncOpenAI
 logger = logging.getLogger(__name__)
 
 EMPLOYEE_ID_PATTERN = re.compile(r"\b(emp-\d{3})\b", re.IGNORECASE)
-EMPLOYEE_NAME_PATTERN = re.compile(
-    r"(?:von|fuer|für|hat|ist|bei)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)"
-)
+EMPLOYEE_NAME_PATTERN = re.compile(r"(?:von|fuer|für|hat|ist|bei)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)")
 SINGLE_NAME_CONTEXT_PATTERN = re.compile(
     r"(?:von|fuer|für|hat|ist|bei)\s+(?:(?:Frau|Herr)\s+)?([A-ZÄÖÜ][\wÄÖÜäöüß-]+)(?:\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+))?"
 )
@@ -102,7 +100,11 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-vacation", "name": "query_hr_system", "arguments": {"action": "vacation_balance", **employee_reference}}
+                    {
+                        "id": "tool-vacation",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "vacation_balance", **employee_reference},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("gehalt", "salary", "lohn")):
@@ -110,7 +112,11 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-salary", "name": "query_hr_system", "arguments": {"action": "salary_info", **employee_reference}}
+                    {
+                        "id": "tool-salary",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "salary_info", **employee_reference},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("organigramm", "org", "abteilung")):
@@ -118,7 +124,11 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-org", "name": "query_hr_system", "arguments": {"action": "org_chart", "parameters": {}}}
+                    {
+                        "id": "tool-org",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "org_chart", "parameters": {}},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("zeit", "stunden", "timetracking")):
@@ -126,16 +136,18 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-time", "name": "query_hr_system", "arguments": {"action": "time_tracking", **employee_reference}}
+                    {
+                        "id": "tool-time",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "time_tracking", **employee_reference},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("dokument", "richtlinie", "policy", "hochgeladen", "suche")):
             return {
                 "model": "heuristic-fallback",
                 "message": "",
-                "tool_calls": [
-                    {"id": "tool-rag", "name": "search_documents", "arguments": {"query": user_message}}
-                ],
+                "tool_calls": [{"id": "tool-rag", "name": "search_documents", "arguments": {"query": user_message}}],
             }
         return {
             "model": "heuristic-fallback",
@@ -207,8 +219,9 @@ class LLMRouter:
                 ],
             }
         except Exception:
+            logger.exception("LLM provider failed", extra={"model": provider.model})
             self._register_failure(provider)
             fallback_provider = self.get_active_provider()
-            if fallback_provider.model == provider.model:
-                return self._fallback_response(messages)
-            return await self.complete(messages=messages, tools=tools)
+            if fallback_provider.model != provider.model:
+                return await self.complete(messages=messages, tools=tools)
+            return self._fallback_response(messages)
