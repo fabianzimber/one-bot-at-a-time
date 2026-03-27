@@ -351,14 +351,6 @@ export function ChatContainer() {
               <div className="absolute right-[18%] top-[23%] size-6 rounded-full bg-brand-scarlet" />
               <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 border border-brand-electric-indigo/10" />
               <div className="relative flex min-h-64 items-end justify-between p-5">
-                <div>
-                  <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-brand-slate-light">
-                    brand axis
-                  </p>
-                  <p className="mt-2 text-sm text-brand-slate">
-                    White canvas, hard edges, indigo signal.
-                  </p>
-                </div>
                 <div className="border border-brand-silver px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.22em] text-brand-electric-indigo">
                   v1
                 </div>
@@ -464,13 +456,13 @@ export function ChatContainer() {
               <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
                 {hasMessages
                   ? messages.map((message) => (
-                      <MessageBubble
-                        key={message.id}
-                        role={message.role}
-                        content={message.content}
-                        pending={message.pending}
-                      />
-                    ))
+                    <MessageBubble
+                      key={message.id}
+                      role={message.role}
+                      content={message.content}
+                      pending={message.pending}
+                    />
+                  ))
                   : null}
               </div>
             </div>
