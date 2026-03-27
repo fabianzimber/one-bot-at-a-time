@@ -2,9 +2,7 @@
 
 Trenkwalder AI assistant monorepo with a Next.js 16 frontend/BFF and three FastAPI services for chat orchestration, RAG, and seeded HR data.
 
-<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);" width="800" height="450" src="https://embed.figma.com/board/RsHSH7Eo0zcGJXcz3zNqS4/One-Bot-At-A-Time-Architecture?embed-host=share" allowfullscreen></iframe>
-
-Architecture board: [One-Bot-At-A-Time Architecture](https://embed.figma.com/board/RsHSH7Eo0zcGJXcz3zNqS4/One-Bot-At-A-Time-Architecture?embed-host=share)
+Architecture board: [One-Bot-At-A-Time Architecture](https://www.figma.com/board/RsHSH7Eo0zcGJXcz3zNqS4/One-Bot-At-A-Time-Architecture?t=sPJ4CkVoSVkvKVkz-1)
 
 If your Markdown renderer strips `iframe` embeds, use the board link above.
 
