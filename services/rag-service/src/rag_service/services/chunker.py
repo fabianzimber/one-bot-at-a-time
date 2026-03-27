@@ -28,6 +28,9 @@ def recursive_character_split(text: str, chunk_size: int = 512, overlap: int = 5
     if overlap >= chunk_size:
         raise ValueError(f"overlap ({overlap}) must be less than chunk_size ({chunk_size})")
 
+    if not text.strip():
+        return []
+
     if len(text) <= chunk_size:
         return [Chunk(text=text, index=0, metadata={})]
 

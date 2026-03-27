@@ -217,3 +217,23 @@ def test_rag_service_rejects_unsupported_upload_extension() -> None:
         files={"file": ("policy.csv", b"not supported", "text/csv")},
     )
     assert response.status_code == 400
+
+
+def test_rag_service_rejects_upload_without_extension() -> None:
+    client = TestClient(rag_main.app)
+    response = client.post(
+        "/api/v1/ingest",
+        files={"file": ("policy", b"not supported", "text/plain")},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Filename must include an extension"
+
+
+def test_rag_service_rejects_documents_without_extractable_text() -> None:
+    client = TestClient(rag_main.app)
+    response = client.post(
+        "/api/v1/ingest",
+        files={"file": ("empty.txt", b"   \n\t", "text/plain")},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Document contains no extractable text"
