@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
-import { BotIdClient } from "botid/client";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -36,30 +35,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const protectedRoutes = [
-    {
-      path: "/api/chat",
-      method: "POST" as const,
-    },
-    {
-      path: "/api/chat/stream",
-      method: "POST" as const,
-    },
-    {
-      path: "/api/documents",
-      method: "POST" as const,
-    },
-  ];
-
   return (
     <html
       lang="de"
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} h-full scroll-smooth antialiased`}
     >
-      <head>
-        <BotIdClient protect={protectedRoutes} />
-      </head>
       <body className="min-h-full bg-background text-foreground selection:bg-brand-electric-indigo/20 selection:text-brand-midnight">
         {children}
       </body>
