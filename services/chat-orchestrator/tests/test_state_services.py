@@ -10,6 +10,36 @@ from chat_orchestrator.services.streaming import stream_chat_response
 from shared.models import Message, MessageRole
 
 
+class FakeConversationPipeline:
+    def __init__(self, store: "FakeConversationRedis") -> None:
+        self._store = store
+        self._commands: list[tuple[str, tuple[object, ...]]] = []
+
+    def delete(self, key: str) -> None:
+        self._commands.append(("delete", (key,)))
+
+    def rpush(self, key: str, *values: str) -> None:
+        self._commands.append(("rpush", (key, *values)))
+
+    def expire(self, key: str, ttl: int) -> None:
+        self._commands.append(("expire", (key, ttl)))
+
+    async def execute(self) -> list[object]:
+        results: list[object] = []
+        for cmd, args in self._commands:
+            if cmd == "delete":
+                self._store.store.pop(str(args[0]), None)
+                results.append(0)
+            elif cmd == "rpush":
+                key = str(args[0])
+                self._store.store.setdefault(key, []).extend(str(v) for v in args[1:])
+                results.append(len(self._store.store[key]))
+            elif cmd == "expire":
+                self._store.expirations[str(args[0])] = int(args[1])
+                results.append(True)
+        return results
+
+
 class FakeConversationRedis:
     def __init__(self, *, fail_ping: bool = False) -> None:
         self.fail_ping = fail_ping
@@ -37,6 +67,9 @@ class FakeConversationRedis:
     async def delete(self, key: str) -> None:
         self.store.pop(key, None)
 
+    def pipeline(self) -> FakeConversationPipeline:
+        return FakeConversationPipeline(self)
+
 
 class FakePipeline:
     def __init__(self, count: int) -> None:
@@ -46,6 +79,9 @@ class FakePipeline:
     def zremrangebyscore(self, key: str, minimum: float, maximum: float) -> None:
         self.operations.append(("zremrangebyscore", (key, minimum, maximum)))
 
+    def zadd(self, key: str, values: dict[str, float]) -> None:
+        self.operations.append(("zadd", (key, values)))
+
     def zcard(self, key: str) -> None:
         self.operations.append(("zcard", key))
 
@@ -53,7 +89,7 @@ class FakePipeline:
         self.operations.append(("expire", (key, ttl)))
 
     async def execute(self) -> list[object]:
-        return [0, self.count, True]
+        return [0, 1, self.count + 1, True]
 
 
 class FakeRateRedis:
@@ -62,6 +98,7 @@ class FakeRateRedis:
         self.fail_ping = fail_ping
         self.pipeline_instance = FakePipeline(count)
         self.zadd_calls: list[tuple[str, dict[str, float]]] = []
+        self.zrem_calls: list[tuple[str, str]] = []
         self.closed = False
 
     async def ping(self) -> None:
@@ -73,6 +110,9 @@ class FakeRateRedis:
 
     async def zadd(self, key: str, values: dict[str, float]) -> None:
         self.zadd_calls.append((key, values))
+
+    async def zrem(self, key: str, *members: str) -> None:
+        self.zrem_calls.append((key, members[0] if members else ""))
 
     async def aclose(self) -> None:
         self.closed = True
@@ -132,7 +172,7 @@ async def test_rate_limiter_memory_allows_then_denies() -> None:
 
 
 @pytest.mark.asyncio
-async def test_rate_limiter_redis_branch_adds_only_allowed_requests() -> None:
+async def test_rate_limiter_redis_branch_allows_then_denies() -> None:
     allowed_limiter = RateLimiter(redis_url="", limit=2, window_seconds=60)
     allowed_limiter._client = FakeRateRedis(count=1)
     await allowed_limiter.connect()
@@ -146,9 +186,8 @@ async def test_rate_limiter_redis_branch_adds_only_allowed_requests() -> None:
     await denied_limiter.close()
 
     assert allowed == (True, 0)
-    assert len(allowed_limiter._client.zadd_calls) == 1
     assert denied == (False, 60)
-    assert denied_limiter._client.zadd_calls == []
+    assert len(denied_limiter._client.zrem_calls) == 1
 
 
 @pytest.mark.asyncio

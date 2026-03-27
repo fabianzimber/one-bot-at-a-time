@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from typing import Any
 from uuid import uuid4
 
 from chat_orchestrator.services.conversation import ConversationStore
@@ -102,7 +103,7 @@ class ChatService:
         )
 
         tool_calls_used: list[str] = []
-        sources: list[dict] = []
+        sources: list[dict[str, Any]] = []
         assistant_message = ""
         model_used: str | None = None
 
@@ -159,7 +160,6 @@ class ChatService:
             if direct_tool_message:
                 assistant_message = direct_tool_message
                 break
-            continue
         else:
             assistant_message = "Die Anfrage konnte nach mehreren Tool-Schritten nicht abgeschlossen werden."
 

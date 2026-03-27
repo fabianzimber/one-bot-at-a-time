@@ -35,7 +35,17 @@ def _build_org_nodes(employees: list[Employee], department: str | None = None) -
     for reports in by_manager.values():
         reports.sort(key=lambda item: (item.department, item.last_name, item.first_name))
 
+    visited: set[str] = set()
+
     def to_node(employee: Employee) -> OrgNode:
+        if employee.id in visited:
+            return OrgNode(
+                employee_id=employee.id,
+                name=f"{employee.first_name} {employee.last_name}",
+                position=employee.position,
+                department=employee.department,
+            )
+        visited.add(employee.id)
         return OrgNode(
             employee_id=employee.id,
             name=f"{employee.first_name} {employee.last_name}",

@@ -219,8 +219,9 @@ class LLMRouter:
                 ],
             }
         except Exception:
+            logger.exception("LLM provider failed", extra={"model": provider.model})
             self._register_failure(provider)
             fallback_provider = self.get_active_provider()
-            if fallback_provider.model == provider.model:
-                return self._fallback_response(messages)
-            return await self.complete(messages=messages, tools=tools)
+            if fallback_provider.model != provider.model:
+                return await self.complete(messages=messages, tools=tools)
+            return self._fallback_response(messages)

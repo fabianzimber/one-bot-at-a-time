@@ -66,6 +66,12 @@ class VectorStore:
             return 0.0
         return dot / (left_norm * right_norm)
 
+    def _require_collection(self) -> "Collection":
+        """Return the ChromaDB collection or raise if not initialized."""
+        if self._collection is None:
+            raise RuntimeError("ChromaDB collection not initialized — call initialize() first")
+        return self._collection
+
     async def add_documents(
         self,
         ids: list[str],
@@ -76,11 +82,11 @@ class VectorStore:
     ) -> None:
         """Add document chunks to the vector store."""
         if self.backend == "chroma":
-            assert self._collection is not None
+            collection = self._require_collection()
             sanitized_metadatas = [
                 {key: value for key, value in metadata.items() if value is not None} for metadata in metadatas
             ]
-            self._collection.add(ids=ids, documents=texts, embeddings=embeddings, metadatas=sanitized_metadatas)
+            collection.add(ids=ids, documents=texts, embeddings=embeddings, metadatas=sanitized_metadatas)
 
         session.add_all(
             [
@@ -106,8 +112,8 @@ class VectorStore:
     ) -> list[dict[str, Any]]:
         """Search for similar documents by embedding."""
         if self.backend == "chroma":
-            assert self._collection is not None
-            result = self._collection.query(query_embeddings=[query_embedding], n_results=top_k)
+            collection = self._require_collection()
+            result = collection.query(query_embeddings=[query_embedding], n_results=top_k)
             documents = result.get("documents", [[]])[0]
             metadatas = result.get("metadatas", [[]])[0]
             distances = result.get("distances", [[]])[0]
@@ -144,9 +150,8 @@ class VectorStore:
     async def delete(self, document_id: str, session: AsyncSession) -> None:
         """Delete all chunks belonging to a document."""
         if self.backend == "chroma":
-            assert self._collection is not None
-            self._collection.delete(where={"document_id": document_id})
+            collection = self._require_collection()
+            collection.delete(where={"document_id": document_id})
 
         await session.exec(delete(DocumentChunkRecord).where(DocumentChunkRecord.document_id == document_id))
-        await session.commit()
         logger.info("Document deleted", extra={"document_id": document_id, "backend": self.backend})

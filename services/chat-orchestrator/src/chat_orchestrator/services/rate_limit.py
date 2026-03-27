@@ -37,13 +37,14 @@ class RateLimiter:
             redis_key = f"rate-limit:{key}"
             pipeline = self._client.pipeline()
             pipeline.zremrangebyscore(redis_key, 0, window_start)
+            pipeline.zadd(redis_key, {str(now): now})
             pipeline.zcard(redis_key)
             pipeline.expire(redis_key, self.window_seconds)
-            _, count, _ = await pipeline.execute()
-            if int(count) >= self.limit:
+            _, _, count, _ = await pipeline.execute()
+            if int(count) > self.limit:
+                # Over limit — remove the entry we just added
+                await self._client.zrem(redis_key, str(now))
                 return False, self.window_seconds
-            # Only add the request after confirming we're under the limit
-            await self._client.zadd(redis_key, {str(now): now})
             return True, 0
 
         bucket = self._memory[key]

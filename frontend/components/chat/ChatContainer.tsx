@@ -109,7 +109,7 @@ export function ChatContainer() {
   };
 
   const appendBotMessage = (content: string, pending = false) => {
-    const id = `bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = `bot-${crypto.randomUUID()}`;
     setMessages((currentMessages) => [
       ...currentMessages,
       {
@@ -272,7 +272,7 @@ export function ChatContainer() {
         setMessages((currentMessages) => [
           ...currentMessages,
           {
-            id: `user-upload-${Date.now()}`,
+            id: `user-upload-${crypto.randomUUID()}`,
             role: "user",
             content: `Uploaded file: ${file.name}`,
           },
@@ -288,7 +288,7 @@ export function ChatContainer() {
       setMessages((currentMessages) => [
         ...currentMessages,
         {
-          id: `user-${Date.now()}`,
+          id: `user-${crypto.randomUUID()}`,
           role: "user",
           content: normalizedMessage,
         },
@@ -296,6 +296,9 @@ export function ChatContainer() {
 
       await streamResponse(normalizedMessage);
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
       const messageText = error instanceof Error ? error.message : "Request failed";
       appendBotMessage(messageText);
       setStatusText("Request failed");

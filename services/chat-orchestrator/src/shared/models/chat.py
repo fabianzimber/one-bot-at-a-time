@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 from enum import StrEnum
 from functools import partial
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -34,6 +35,6 @@ class ChatResponse(BaseModel):
     message: str
     conversation_id: str
     tool_calls_used: list[str] = Field(default_factory=list)
-    sources: list[dict] = Field(default_factory=list)
+    sources: list[dict[str, Any]] = Field(default_factory=list)
     model_used: str | None = None
     timestamp: datetime = Field(default_factory=_utcnow)
