@@ -452,7 +452,7 @@ export function ChatContainer() {
               className="pointer-events-none absolute right-12 top-10 hidden h-24 w-24 border border-brand-teal/30 animate-drift-line lg:block"
             />
 
-            <div className="flex h-full overflow-y-auto px-5 py-6 sm:px-6">
+            <div className="flex h-full max-h-[calc(100svh-18rem)] overflow-y-auto px-5 py-6 sm:px-6">
               <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
                 {hasMessages
                   ? messages.map((message) => (
