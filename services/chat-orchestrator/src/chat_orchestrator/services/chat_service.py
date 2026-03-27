@@ -9,7 +9,8 @@ from chat_orchestrator.services.conversation import ConversationStore
 from chat_orchestrator.services.llm_router import LLMRouter
 from chat_orchestrator.services.tool_executor import ToolExecutor
 from chat_orchestrator.tools.registry import ToolRegistry
-from shared.models import ChatResponse, Message, MessageRole, ToolCall
+from shared.models import ChatResponse, Message, MessageRole, ToolCall, ToolResult
+from shared.models.tools import ToolStatus
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,26 @@ class ChatService:
     def _contains_prompt_injection(self, message: str) -> bool:
         lowered = message.lower()
         return any(re.search(pattern, lowered) for pattern in PROMPT_INJECTION_PATTERNS)
+
+    def _build_direct_tool_message(self, tool_results: list[ToolResult]) -> str | None:
+        for tool_result in tool_results:
+            if tool_result.status == ToolStatus.SUCCESS:
+                continue
+
+            if tool_result.status == ToolStatus.TIMEOUT:
+                return "Die interne Datenabfrage hat zu lange gedauert. Bitte versuche es gleich noch einmal."
+
+            if isinstance(tool_result.data, dict) and tool_result.data.get("kind") == "hr_not_found":
+                employee_id = tool_result.data.get("employee_id", "unbekannt")
+                return (
+                    f"Ich konnte fuer {employee_id} keinen passenden HR-Datensatz finden. "
+                    "Pruefe die Mitarbeiter-ID oder nutze die Mock-Daten-Seite im Frontend."
+                )
+
+            if tool_result.error:
+                return "Die interne Datenabfrage konnte nicht abgeschlossen werden."
+
+        return None
 
     async def process_message(self, message: str, conversation_id: str | None = None) -> ChatResponse:
         conversation_id = conversation_id or str(uuid4())
@@ -114,8 +135,10 @@ class ChatService:
                 }
             )
 
+            tool_results: list[ToolResult] = []
             for tool_call in tool_calls:
                 tool_result = await self.tool_executor.execute(tool_call)
+                tool_results.append(tool_result)
                 payload = tool_result.model_dump()
                 if tool_call.name == "search_documents" and isinstance(tool_result.data, dict):
                     sources = tool_result.data.get("results", [])
@@ -127,6 +150,11 @@ class ChatService:
                         "content": json.dumps(payload, ensure_ascii=False),
                     }
                 )
+
+            direct_tool_message = self._build_direct_tool_message(tool_results)
+            if direct_tool_message:
+                assistant_message = direct_tool_message
+                break
             continue
         else:
             assistant_message = "Die Anfrage konnte nach mehreren Tool-Schritten nicht abgeschlossen werden."

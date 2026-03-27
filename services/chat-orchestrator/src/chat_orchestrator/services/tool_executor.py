@@ -1,5 +1,6 @@
 """Executes tool calls returned by the LLM."""
 
+import asyncio
 import json
 import logging
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -46,6 +47,96 @@ class ToolExecutor:
         if share_token:
             query["_vercel_share"] = share_token
         return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+
+    @staticmethod
+    def _extract_error_detail(response: httpx.Response) -> str:
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = None
+
+        if isinstance(payload, dict):
+            detail = payload.get("detail") or payload.get("error")
+            if isinstance(detail, str) and detail:
+                return detail
+
+        return response.text or response.reason_phrase or "Unknown error"
+
+    def _build_hr_not_found_result(
+        self,
+        *,
+        tool_call: ToolCall,
+        action: str,
+        employee_id: str,
+        response: httpx.Response,
+    ) -> ToolResult:
+        return ToolResult(
+            tool_call_id=tool_call.id,
+            name=tool_call.name,
+            status=ToolStatus.ERROR,
+            data={
+                "kind": "hr_not_found",
+                "action": action,
+                "employee_id": employee_id,
+                "detail": self._extract_error_detail(response),
+            },
+            error=self._extract_error_detail(response),
+        )
+
+    async def get_hr_showcase(self, limit: int = 12) -> dict:
+        """Return a compact overview of seeded HR mock data for the frontend."""
+        employees_response = await self._client.get(
+            self._build_url(self.hr_service_url, "/api/v1/employees", self.hr_service_share_token),
+            headers=self._headers(),
+        )
+        employees_response.raise_for_status()
+
+        employees = employees_response.json()
+        limited_employees = employees[: max(1, min(limit, len(employees)))]
+        employee_lookup = {
+            employee["id"]: f"{employee['first_name']} {employee['last_name']}" for employee in employees
+        }
+
+        async def enrich_employee(employee: dict) -> dict:
+            vacation_url = self._build_url(
+                self.hr_service_url,
+                f"/api/v1/employees/{employee['id']}/vacation",
+                self.hr_service_share_token,
+            )
+            salary_url = self._build_url(
+                self.hr_service_url,
+                f"/api/v1/employees/{employee['id']}/salary",
+                self.hr_service_share_token,
+            )
+
+            vacation_response, salary_response = await asyncio.gather(
+                self._client.get(vacation_url, headers=self._headers()),
+                self._client.get(salary_url, headers=self._headers()),
+            )
+
+            vacation = vacation_response.json() if vacation_response.is_success else {}
+            salary = salary_response.json() if salary_response.is_success else {}
+
+            return {
+                "employee_id": employee["id"],
+                "name": f"{employee['first_name']} {employee['last_name']}",
+                "department": employee["department"],
+                "position": employee["position"],
+                "manager_name": employee_lookup.get(employee.get("manager_id") or "", "Executive"),
+                "remaining_vacation_days": vacation.get("remaining_days"),
+                "pay_grade": salary.get("pay_grade"),
+                "gross_annual": salary.get("gross_annual"),
+                "currency": salary.get("currency", "EUR"),
+            }
+
+        rows = await asyncio.gather(*(enrich_employee(employee) for employee in limited_employees))
+        departments = sorted({employee["department"] for employee in employees})
+
+        return {
+            "rows": rows,
+            "employee_count": len(employees),
+            "departments": departments,
+        }
 
     async def execute(self, tool_call: ToolCall) -> ToolResult:
         """Execute a single tool call and return the result."""
@@ -140,6 +231,14 @@ class ToolExecutor:
                     name=tool_call.name,
                     status=ToolStatus.ERROR,
                     error=f"Unsupported HR action: {action}",
+                )
+
+            if response.status_code == 404:
+                return self._build_hr_not_found_result(
+                    tool_call=tool_call,
+                    action=action,
+                    employee_id=employee_id,
+                    response=response,
                 )
 
             response.raise_for_status()

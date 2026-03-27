@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Paperclip, SendHorizontal, X } from "lucide-react";
+import { Paperclip, SendHorizontal, Sparkles, X } from "lucide-react";
+
+import { getRandomDemoPrompt } from "@/lib/demo-prompts";
 
 type InputBarProps = {
   onSubmit: (message: string, file: File | null) => Promise<void> | void;
@@ -37,6 +39,10 @@ export function InputBar({ onSubmit, disabled = false }: InputBarProps) {
     setSelectedFile(event.target.files?.[0] ?? null);
   };
 
+  const handleInsertDemoPrompt = () => {
+    setMessage(getRandomDemoPrompt());
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -60,6 +66,20 @@ export function InputBar({ onSubmit, disabled = false }: InputBarProps) {
           </button>
         </div>
       ) : null}
+
+      <div className="flex items-center justify-between gap-3 text-[0.68rem] uppercase tracking-[0.22em] text-brand-slate-light">
+        <span className="font-mono">Chat / HR / RAG demos</span>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={handleInsertDemoPrompt}
+          className="inline-flex h-8 items-center gap-2 rounded-full border border-brand-slate bg-brand-midnight px-3 font-mono text-[0.68rem] tracking-[0.18em] text-brand-ghost transition-colors hover:border-brand-electric-indigo hover:text-brand-white disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Insert demo prompt"
+        >
+          <Sparkles className="size-3.5" />
+          demo
+        </button>
+      </div>
 
       <div className="flex items-center gap-2">
         <input

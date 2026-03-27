@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 
 import { InputBar } from "@/components/chat/InputBar";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -283,11 +284,20 @@ export function ChatContainer() {
           </p>
           <p className="mt-1 text-xs text-brand-slate-light">{statusText}</p>
         </div>
-        {conversationId ? (
-          <p className="hidden font-mono text-[0.68rem] uppercase tracking-[0.18em] text-brand-slate-light sm:block">
-            session {conversationId.slice(0, 8)}
-          </p>
-        ) : null}
+
+        <div className="flex items-center gap-3">
+          <Link
+            href="/mock-data"
+            className="hidden rounded-full border border-brand-slate px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.18em] text-brand-slate-light transition-colors hover:border-brand-electric-indigo hover:text-brand-ghost sm:inline-flex"
+          >
+            mock data
+          </Link>
+          {conversationId ? (
+            <p className="hidden font-mono text-[0.68rem] uppercase tracking-[0.18em] text-brand-slate-light sm:block">
+              session {conversationId.slice(0, 8)}
+            </p>
+          ) : null}
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4">

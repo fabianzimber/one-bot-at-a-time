@@ -3,6 +3,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
+from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from chat_orchestrator.runtime import ensure_runtime_ready
@@ -11,6 +12,24 @@ from shared.models import ChatRequest, ChatResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+class MockDataRow(BaseModel):
+    employee_id: str
+    name: str
+    department: str
+    position: str
+    manager_name: str
+    remaining_vacation_days: int | None = None
+    pay_grade: str | None = None
+    gross_annual: float | None = None
+    currency: str = "EUR"
+
+
+class MockDataOverview(BaseModel):
+    employee_count: int
+    departments: list[str]
+    rows: list[MockDataRow]
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -57,3 +76,11 @@ async def chat_stream(
             message=response.message,
         )
     )
+
+
+@router.get("/mock-data/hr-overview", response_model=MockDataOverview)
+async def hr_mock_data_overview(fastapi_request: Request) -> MockDataOverview:
+    """Expose a compact HR mock-data snapshot for the frontend."""
+    await ensure_runtime_ready(fastapi_request.app)
+    payload = await fastapi_request.app.state.chat_service.tool_executor.get_hr_showcase()
+    return MockDataOverview.model_validate(payload)

@@ -22,16 +22,24 @@ export function getForwardedFor(request: Request) {
   return request.headers.get("x-forwarded-for") ?? "unknown"
 }
 
-export function buildInternalHeaders(request: Request) {
+function createInternalHeaders(forwardedFor: string) {
   const headers = new Headers()
   const internalApiKey = getInternalApiKey()
   if (internalApiKey) {
     headers.set("x-internal-api-key", internalApiKey)
   }
 
-  headers.set("x-forwarded-for", getForwardedFor(request))
+  headers.set("x-forwarded-for", forwardedFor)
   headers.set("x-request-id", crypto.randomUUID())
   return headers
+}
+
+export function buildInternalHeaders(request: Request) {
+  return createInternalHeaders(getForwardedFor(request))
+}
+
+export function buildInternalServerHeaders(forwardedFor = "server-render") {
+  return createInternalHeaders(forwardedFor)
 }
 
 export function buildServiceUrl(baseUrl: string, path: string, shareToken = "") {
