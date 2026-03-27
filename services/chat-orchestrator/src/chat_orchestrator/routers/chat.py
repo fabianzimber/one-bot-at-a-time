@@ -49,6 +49,7 @@ async def chat(request: ChatRequest, fastapi_request: Request) -> ChatResponse:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Rate limit exceeded. Retry in {retry_after}s.",
+            headers={"Retry-After": str(retry_after)},
         )
 
     return await fastapi_request.app.state.chat_service.process_message(
@@ -70,6 +71,7 @@ async def chat_stream(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Rate limit exceeded. Retry in {retry_after}s.",
+            headers={"Retry-After": str(retry_after)},
         )
 
     response = await fastapi_request.app.state.chat_service.process_message(

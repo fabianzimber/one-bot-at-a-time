@@ -46,7 +46,9 @@ class DummyToolExecutor:
         return self.results.pop(0)
 
 
-def make_service(*, llm_responses: list[dict], tool_results: list[ToolResult]) -> tuple[ChatService, DummyConversationStore, DummyLLMRouter]:
+def make_service(
+    *, llm_responses: list[dict], tool_results: list[ToolResult]
+) -> tuple[ChatService, DummyConversationStore, DummyLLMRouter]:
     store = DummyConversationStore()
     llm_router = DummyLLMRouter(llm_responses)
     service = ChatService(
@@ -79,9 +81,7 @@ async def test_process_message_returns_sources_after_search_tool_roundtrip() -> 
             {
                 "model": "gpt-5.4",
                 "message": "",
-                "tool_calls": [
-                    {"id": "search-1", "name": "search_documents", "arguments": {"query": "Homeoffice"}}
-                ],
+                "tool_calls": [{"id": "search-1", "name": "search_documents", "arguments": {"query": "Homeoffice"}}],
             },
             {
                 "model": "gpt-4.1-mini",

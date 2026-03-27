@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Bot, DatabaseZap, ShieldCheck, Workflow } from "lucide-react";
 
@@ -101,7 +101,7 @@ export function ChatContainer() {
   const [statusText, setStatusText] = useState<string>("Ready");
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const hasMessages = useMemo(() => messages.length > 0, [messages.length]);
+  const hasMessages = messages.length > 0;
 
   const closeStream = () => {
     abortControllerRef.current?.abort();
@@ -204,9 +204,15 @@ export function ChatContainer() {
             continue;
           }
 
+          let parsedData: unknown;
+          try {
+            parsedData = JSON.parse(parsed.data);
+          } catch {
+            continue;
+          }
           const event = {
             event: parsed.event,
-            data: JSON.parse(parsed.data),
+            data: parsedData,
           } as StreamEvent;
 
           if (event.event === "start") {

@@ -126,9 +126,17 @@ class ToolExecutor:
         if not normalized_target:
             return "", employee_name
 
+        employees = response.json()
+        if not isinstance(employees, list):
+            logger.warning(
+                "Unexpected response format from HR employees endpoint",
+                extra={"type": type(employees).__name__},
+            )
+            return "", employee_name
+
         exact_matches: list[tuple[str, str]] = []
         partial_matches: list[tuple[str, str]] = []
-        for employee in response.json():
+        for employee in employees:
             full_name = f"{employee['first_name']} {employee['last_name']}"
             normalized_full_name = self._normalize_employee_name(full_name)
             first_name = self._normalize_employee_name(employee["first_name"])

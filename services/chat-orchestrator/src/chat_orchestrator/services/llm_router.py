@@ -11,9 +11,7 @@ from openai import AsyncOpenAI
 logger = logging.getLogger(__name__)
 
 EMPLOYEE_ID_PATTERN = re.compile(r"\b(emp-\d{3})\b", re.IGNORECASE)
-EMPLOYEE_NAME_PATTERN = re.compile(
-    r"(?:von|fuer|für|hat|ist|bei)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)"
-)
+EMPLOYEE_NAME_PATTERN = re.compile(r"(?:von|fuer|für|hat|ist|bei)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+)")
 SINGLE_NAME_CONTEXT_PATTERN = re.compile(
     r"(?:von|fuer|für|hat|ist|bei)\s+(?:(?:Frau|Herr)\s+)?([A-ZÄÖÜ][\wÄÖÜäöüß-]+)(?:\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]+))?"
 )
@@ -82,7 +80,10 @@ class LLMRouter:
         user_message = next((item["content"] for item in reversed(messages) if item["role"] == "user"), "")
         last_tool_message = next((item for item in reversed(messages) if item["role"] == "tool"), None)
         if last_tool_message is not None:
-            payload = json.loads(last_tool_message["content"])
+            try:
+                payload = json.loads(last_tool_message["content"])
+            except (ValueError, KeyError):
+                payload = {}
             data = payload.get("data")
             if isinstance(data, dict) and "results" in data:
                 results = data.get("results", [])
@@ -102,7 +103,11 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-vacation", "name": "query_hr_system", "arguments": {"action": "vacation_balance", **employee_reference}}
+                    {
+                        "id": "tool-vacation",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "vacation_balance", **employee_reference},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("gehalt", "salary", "lohn")):
@@ -110,7 +115,11 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-salary", "name": "query_hr_system", "arguments": {"action": "salary_info", **employee_reference}}
+                    {
+                        "id": "tool-salary",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "salary_info", **employee_reference},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("organigramm", "org", "abteilung")):
@@ -118,7 +127,11 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-org", "name": "query_hr_system", "arguments": {"action": "org_chart", "parameters": {}}}
+                    {
+                        "id": "tool-org",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "org_chart", "parameters": {}},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("zeit", "stunden", "timetracking")):
@@ -126,16 +139,18 @@ class LLMRouter:
                 "model": "heuristic-fallback",
                 "message": "",
                 "tool_calls": [
-                    {"id": "tool-time", "name": "query_hr_system", "arguments": {"action": "time_tracking", **employee_reference}}
+                    {
+                        "id": "tool-time",
+                        "name": "query_hr_system",
+                        "arguments": {"action": "time_tracking", **employee_reference},
+                    }
                 ],
             }
         if any(keyword in lowered for keyword in ("dokument", "richtlinie", "policy", "hochgeladen", "suche")):
             return {
                 "model": "heuristic-fallback",
                 "message": "",
-                "tool_calls": [
-                    {"id": "tool-rag", "name": "search_documents", "arguments": {"query": user_message}}
-                ],
+                "tool_calls": [{"id": "tool-rag", "name": "search_documents", "arguments": {"query": user_message}}],
             }
         return {
             "model": "heuristic-fallback",
@@ -206,7 +221,12 @@ class LLMRouter:
                     for tool_call in (message.tool_calls or [])
                 ],
             }
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "LLM request failed, registering failure and retrying",
+                exc_info=True,
+                extra={"model": provider.model, "error": str(exc)},
+            )
             self._register_failure(provider)
             fallback_provider = self.get_active_provider()
             if fallback_provider.model == provider.model:

@@ -46,9 +46,15 @@ class RateLimiter:
             await self._client.zadd(redis_key, {str(now): now})
             return True, 0
 
+        # Prune stale entries and clean up keys with no active requests
+        if key in self._memory:
+            bucket = self._memory[key]
+            while bucket and bucket[0] <= window_start:
+                bucket.popleft()
+            if not bucket:
+                del self._memory[key]
+
         bucket = self._memory[key]
-        while bucket and bucket[0] <= window_start:
-            bucket.popleft()
         if len(bucket) >= self.limit:
             return False, self.window_seconds
         bucket.append(now)

@@ -1,8 +1,11 @@
 """Authentication helpers shared across services."""
 
+import logging
 from collections.abc import Awaitable, Callable
 
 from fastapi import Header, HTTPException, status
+
+logger = logging.getLogger(__name__)
 
 
 def build_internal_api_key_dependency(
@@ -14,6 +17,11 @@ def build_internal_api_key_dependency(
     local development and tests frictionless while production can enforce
     service-to-service authentication.
     """
+    if not expected_api_key:
+        logger.warning(
+            "INTERNAL_API_KEY is not set — internal API authentication is disabled. "
+            "Set INTERNAL_API_KEY in production environments."
+        )
 
     async def verify_internal_api_key(
         x_internal_api_key: str | None = Header(default=None, alias="x-internal-api-key"),

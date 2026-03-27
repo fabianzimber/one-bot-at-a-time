@@ -56,7 +56,9 @@ class ChatService:
                 return "Die interne Datenabfrage hat zu lange gedauert. Bitte versuche es gleich noch einmal."
 
             if isinstance(tool_result.data, dict) and tool_result.data.get("kind") == "hr_not_found":
-                employee_reference = tool_result.data.get("employee_name") or tool_result.data.get("employee_id") or "unbekannt"
+                employee_reference = (
+                    tool_result.data.get("employee_name") or tool_result.data.get("employee_id") or "unbekannt"
+                )
                 return (
                     f"Ich konnte fuer {employee_reference} keinen passenden HR-Datensatz finden. "
                     "Pruefe die Mitarbeiter-ID oder nutze die Mock-Daten-Seite im Frontend."
@@ -105,7 +107,9 @@ class ChatService:
         model_used: str | None = None
 
         for _ in range(3):
-            completion = await self.llm_router.complete(messages=messages, tools=self.tool_registry.get_all_definitions())
+            completion = await self.llm_router.complete(
+                messages=messages, tools=self.tool_registry.get_all_definitions()
+            )
             model_used = completion["model"]
             tool_calls = [ToolCall.model_validate(item) for item in completion["tool_calls"]]
 
