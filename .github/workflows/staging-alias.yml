@@ -1,0 +1,58 @@
+name: Update Staging Alias
+
+permissions:
+  contents: read
+
+on:
+  deployment_status:
+
+jobs:
+  alias-staging:
+    name: Alias staging.onebot.run
+    if: >
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Vercel deployment ID from URL
+        id: get-deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          TARGET_URL: ${{ github.event.deployment_status.target_url }}
+        run: |
+          DEPLOY_HOST=$(echo "$TARGET_URL" | sed 's|https://||' | sed 's|/.*||')
+          echo "Deploy host: $DEPLOY_HOST"
+
+          DEPLOY_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v13/deployments?teamId=$VERCEL_TEAM_ID&url=$DEPLOY_HOST&limit=1" \
+              | jq -r '.deployments[0].uid')
+
+          if [ "$DEPLOY_ID" = "null" ] || [ -z "$DEPLOY_ID" ]; then
+            echo "Could not find Vercel deployment for $DEPLOY_HOST"
+            exit 1
+          fi
+
+          echo "deployment_id=$DEPLOY_ID" >> "$GITHUB_OUTPUT"
+          echo "Found deployment: $DEPLOY_ID"
+
+      - name: Alias staging.onebot.run to deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          DEPLOY_ID: ${{ steps.get-deployment.outputs.deployment_id }}
+        run: |
+          RESULT=$(curl -s -X POST \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"alias":"staging.onebot.run"}' \
+              "https://api.vercel.com/v2/deployments/$DEPLOY_ID/aliases?teamId=$VERCEL_TEAM_ID")
+
+          echo "$RESULT" | jq .
+
+          if echo "$RESULT" | jq -e '.error' > /dev/null 2>&1; then
+            echo "Failed to create alias"
+            exit 1
+          fi
+
+          echo "Successfully aliased staging.onebot.run to deployment $DEPLOY_ID"

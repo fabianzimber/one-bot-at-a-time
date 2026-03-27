@@ -4,7 +4,9 @@ import json
 import logging
 import re
 import time
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
+from typing import Any
 
 from openai import AsyncOpenAI
 
@@ -189,6 +191,54 @@ class LLMRouter:
             return {"employee_name": word}
 
         return {"employee_id": "emp-001"}
+
+    async def stream_complete(self, messages: list[dict[str, Any]]) -> AsyncGenerator[dict[str, Any]]:
+        """Stream a completion (text-only, no tools) from the active provider.
+
+        Yields dicts: ``{"delta": str}`` for content chunks, and a final
+        ``{"done": True, "model": str}`` sentinel.  On failure the next
+        available provider is tried (mirroring ``complete()`` failover).
+        """
+        provider = self.get_active_provider()
+        logger.info("Streaming LLM provider", extra={"model": provider.model})
+
+        if self._client is None:
+            fallback = self._fallback_response(messages)
+            yield {"delta": fallback["message"]}
+            yield {"done": True, "model": fallback["model"]}
+            return
+
+        try:
+            stream = await self._client.chat.completions.create(
+                model=provider.model,
+                messages=messages,
+                stream=True,
+            )
+            async for chunk in stream:
+                choice = chunk.choices[0] if chunk.choices else None
+                if choice and choice.delta and choice.delta.content:
+                    yield {"delta": choice.delta.content}
+            yield {"done": True, "model": provider.model}
+        except Exception:
+            logger.exception("Streaming LLM provider failed", extra={"model": provider.model})
+            self._register_failure(provider)
+            # Attempt failover to next provider (non-streaming) like complete() does
+            fallback_provider = self.get_active_provider()
+            if fallback_provider.model != provider.model and self._client is not None:
+                try:
+                    response = await self.complete(messages=messages)
+                    yield {"delta": response["message"]}
+                    yield {"done": True, "model": response["model"]}
+                    return
+                except Exception:
+                    logger.exception(
+                        "Fallback provider via complete() also failed",
+                        extra={"model": fallback_provider.model},
+                    )
+            # Final fallback: heuristic response
+            fallback = self._fallback_response(messages)
+            yield {"delta": fallback["message"]}
+            yield {"done": True, "model": fallback["model"]}
 
     async def complete(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
         """Send a completion request to the active provider."""

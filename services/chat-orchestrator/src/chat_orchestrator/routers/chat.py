@@ -72,16 +72,11 @@ async def chat_stream(
             detail=f"Rate limit exceeded. Retry in {retry_after}s.",
         )
 
-    response = await fastapi_request.app.state.chat_service.process_message(
+    event_source = fastapi_request.app.state.chat_service.stream_process_message(
         message=message,
         conversation_id=conversation_id,
     )
-    return EventSourceResponse(
-        fastapi_request.app.state.streamer(
-            conversation_id=response.conversation_id,
-            message=response.message,
-        )
-    )
+    return EventSourceResponse(fastapi_request.app.state.streamer(event_source))
 
 
 @router.get("/mock-data/hr-overview", response_model=MockDataOverview)

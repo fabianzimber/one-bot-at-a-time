@@ -190,9 +190,17 @@ async def test_rate_limiter_redis_branch_allows_then_denies() -> None:
     assert len(denied_limiter._client.zrem_calls) == 1
 
 
+async def _fake_event_source():
+    """Simulate the events that ChatService.stream_process_message yields."""
+    yield {"type": "start", "conversation_id": "conv-stream"}
+    yield {"type": "delta", "content": "A" * 48}
+    yield {"type": "delta", "content": "A" * 22}
+    yield {"type": "done", "conversation_id": "conv-stream"}
+
+
 @pytest.mark.asyncio
 async def test_stream_chat_response_emits_start_content_and_done_events() -> None:
-    events = [event async for event in stream_chat_response(conversation_id="conv-stream", message="A" * 70)]
+    events = [event async for event in stream_chat_response(_fake_event_source())]
 
     assert [event["event"] for event in events] == ["start", "content", "content", "done"]
     assert "conv-stream" in events[0]["data"]

@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from collections.abc import AsyncGenerator
 from typing import Any
 from uuid import uuid4
 
@@ -176,3 +177,123 @@ class ChatService:
             sources=sources,
             model_used=model_used,
         )
+
+    async def stream_process_message(
+        self, message: str, conversation_id: str | None = None
+    ) -> AsyncGenerator[dict[str, Any]]:
+        """Process a message and stream the final LLM response token-by-token.
+
+        Yields dicts with keys:
+        - {"type": "start", "conversation_id": str}
+        - {"type": "delta", "content": str}
+        - {"type": "done", "conversation_id": str}
+
+        Tool-call iterations run non-streaming; only the final text
+        generation is streamed to the client.
+        """
+        conversation_id = conversation_id or str(uuid4())
+
+        if self._contains_prompt_injection(message):
+            safe_reply = "Die Anfrage wurde aus Sicherheitsgruenden nicht direkt ausgefuehrt."
+            await self.conversation_store.append(conversation_id, Message(role=MessageRole.USER, content=message))
+            await self.conversation_store.append(
+                conversation_id, Message(role=MessageRole.ASSISTANT, content=safe_reply)
+            )
+            yield {"type": "start", "conversation_id": conversation_id}
+            yield {"type": "delta", "content": safe_reply}
+            yield {"type": "done", "conversation_id": conversation_id}
+            return
+
+        history = await self.conversation_store.get(conversation_id)
+        history.append(Message(role=MessageRole.USER, content=message))
+        # Persist user message immediately so it survives client disconnects
+        await self.conversation_store.replace(conversation_id, history)
+
+        messages: list[dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}]
+        messages.extend(
+            {
+                "role": entry.role.value,
+                "content": entry.content,
+                **({"tool_call_id": entry.tool_call_id} if entry.tool_call_id else {}),
+                **({"name": entry.name} if entry.name else {}),
+            }
+            for entry in history
+        )
+
+        yield {"type": "start", "conversation_id": conversation_id}
+
+        # Run tool-call loop (non-streaming) for up to 3 iterations
+        for _ in range(3):
+            completion = await self.llm_router.complete(
+                messages=messages, tools=self.tool_registry.get_all_definitions()
+            )
+            tool_calls = [ToolCall.model_validate(item) for item in completion["tool_calls"]]
+
+            if not tool_calls:
+                # No more tool calls — now stream the final response
+                break
+
+            tool_call_payloads = []
+            for tool_call in tool_calls:
+                tool_call_payloads.append(
+                    {
+                        "id": tool_call.id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_call.name,
+                            "arguments": json.dumps(tool_call.arguments),
+                        },
+                    }
+                )
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": completion["message"] or "",
+                    "tool_calls": tool_call_payloads,
+                }
+            )
+
+            tool_results: list[ToolResult] = []
+            for tool_call in tool_calls:
+                tool_result = await self.tool_executor.execute(tool_call)
+                tool_results.append(tool_result)
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": tool_call.name,
+                        "content": json.dumps(tool_result.model_dump(), ensure_ascii=False),
+                    }
+                )
+
+            direct_tool_message = self._build_direct_tool_message(tool_results)
+            if direct_tool_message:
+                yield {"type": "delta", "content": direct_tool_message}
+                history.append(Message(role=MessageRole.ASSISTANT, content=direct_tool_message))
+                await self.conversation_store.replace(conversation_id, history)
+                yield {"type": "done", "conversation_id": conversation_id}
+                return
+        else:
+            # Exhausted tool-call iterations
+            fallback_msg = "Die Anfrage konnte nach mehreren Tool-Schritten nicht abgeschlossen werden."
+            yield {"type": "delta", "content": fallback_msg}
+            history.append(Message(role=MessageRole.ASSISTANT, content=fallback_msg))
+            await self.conversation_store.replace(conversation_id, history)
+            yield {"type": "done", "conversation_id": conversation_id}
+            return
+
+        # Stream the final LLM text response
+        full_content = ""
+        async for chunk in self.llm_router.stream_complete(messages=messages):
+            if "delta" in chunk:
+                full_content += chunk["delta"]
+                yield {"type": "delta", "content": chunk["delta"]}
+
+        if not full_content:
+            full_content = "Die Anfrage konnte nicht verarbeitet werden."
+            yield {"type": "delta", "content": full_content}
+
+        history.append(Message(role=MessageRole.ASSISTANT, content=full_content))
+        await self.conversation_store.replace(conversation_id, history)
+        yield {"type": "done", "conversation_id": conversation_id}

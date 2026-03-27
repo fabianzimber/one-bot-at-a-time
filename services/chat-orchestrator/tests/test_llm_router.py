@@ -99,8 +99,8 @@ class FakeCompletions:
         self.responses = list(responses)
         self.models: list[str] = []
 
-    async def create(self, *, model: str, messages: list[dict], tools=None, tool_choice=None):
-        del messages, tools, tool_choice
+    async def create(self, *, model: str, messages: list[dict], stream: bool = False, tools=None, tool_choice=None):
+        del messages, stream, tools, tool_choice
         self.models.append(model)
         current = self.responses.pop(0)
         if isinstance(current, Exception):
@@ -160,3 +160,106 @@ async def test_complete_uses_heuristic_response_when_no_provider_remains_availab
 
     assert response["model"] == "heuristic-fallback"
     assert response["tool_calls"][0]["arguments"]["employee_name"] == "Frau Dowerg"
+
+
+# ── stream_complete tests ───────────────────────────────────────────
+
+
+class FakeStreamChunk:
+    """Mimics an OpenAI streaming chunk object."""
+
+    def __init__(self, content: str | None = None) -> None:
+        self.choices = [SimpleNamespace(delta=SimpleNamespace(content=content))]
+
+
+class FakeAsyncStream:
+    """Mimics the async iterable returned by OpenAI stream=True."""
+
+    def __init__(self, chunks: list[FakeStreamChunk]) -> None:
+        self._chunks = list(chunks)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self._chunks:
+            raise StopAsyncIteration
+        return self._chunks.pop(0)
+
+
+class FakeStreamCompletions:
+    def __init__(self, stream: FakeAsyncStream | Exception) -> None:
+        self._stream = stream
+        self.calls = 0
+
+    async def create(self, *, model: str, messages: list[dict], stream: bool = False, tools=None, tool_choice=None):
+        del messages, tools, tool_choice
+        self.calls += 1
+        if isinstance(self._stream, Exception):
+            raise self._stream
+        return self._stream
+
+
+async def test_stream_complete_yields_deltas_and_done_sentinel():
+    router = LLMRouter(primary="gpt-5.4", fallback="gpt-4.1-mini", emergency="gpt-4.1-nano", api_key="live-key")
+    fake_stream = FakeAsyncStream(
+        [
+            FakeStreamChunk("Hello "),
+            FakeStreamChunk("World"),
+            FakeStreamChunk(None),  # empty chunk — should be skipped
+        ]
+    )
+    completions = FakeStreamCompletions(fake_stream)
+    router._client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+
+    events = [event async for event in router.stream_complete(messages=[{"role": "user", "content": "Hi"}])]
+
+    deltas = [e["delta"] for e in events if "delta" in e]
+    assert deltas == ["Hello ", "World"]
+    assert events[-1] == {"done": True, "model": "gpt-5.4"}
+
+
+async def test_stream_complete_falls_back_to_next_provider_on_error():
+    router = LLMRouter(primary="gpt-5.4", fallback="gpt-4.1-mini", emergency="gpt-4.1-nano", api_key="live-key")
+    # Set up primary to be near circuit-break so failure disables it
+    router.providers[0].failure_count = 2
+    router.providers[0].last_failure_at = time.time()
+
+    # First call (stream=True) raises, second call (complete() fallback) succeeds
+    fallback_response = build_openai_response("Fallback works")
+
+    call_count = 0
+
+    async def fake_create(*, model, messages, stream=False, tools=None, tool_choice=None):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            # First call is the streaming attempt — fail it
+            raise RuntimeError("stream broken")
+        # Second call is the non-streaming fallback via complete()
+        return fallback_response
+
+    router._client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create)))
+
+    events = [event async for event in router.stream_complete(messages=[{"role": "user", "content": "Hi"}])]
+
+    deltas = [e["delta"] for e in events if "delta" in e]
+    assert "Fallback works" in deltas[0]
+    assert events[-1]["done"] is True
+
+
+async def test_stream_complete_uses_heuristic_when_no_client():
+    router = LLMRouter(primary="gpt-5.4", fallback="gpt-4.1-mini", emergency="gpt-4.1-nano", api_key="test-key")
+    # _client is None because api_key starts with "test-"
+
+    events = [
+        event
+        async for event in router.stream_complete(
+            messages=[{"role": "user", "content": "Wie viel Urlaub hat emp-003?"}]
+        )
+    ]
+
+    assert events[-1]["done"] is True
+    assert events[-1]["model"] == "heuristic-fallback"
+    # Should have at least one delta
+    assert any("delta" in e for e in events)
