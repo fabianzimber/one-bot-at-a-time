@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 
-async def stream_chat_response(event_source: AsyncGenerator[dict[str, Any], None]) -> AsyncGenerator[dict, None]:
+async def stream_chat_response(event_source: AsyncGenerator[dict[str, Any]]) -> AsyncGenerator[dict]:
     """Convert ChatService stream events into SSE-formatted dicts.
 
     Expects an async generator yielding dicts with a ``type`` key:

@@ -180,7 +180,7 @@ class ChatService:
 
     async def stream_process_message(
         self, message: str, conversation_id: str | None = None
-    ) -> AsyncGenerator[dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any]]:
         """Process a message and stream the final LLM response token-by-token.
 
         Yields dicts with keys:
@@ -208,6 +208,8 @@ class ChatService:
 
         history = await self.conversation_store.get(conversation_id)
         history.append(Message(role=MessageRole.USER, content=message))
+        # Persist user message immediately so it survives client disconnects
+        await self.conversation_store.replace(conversation_id, history)
 
         messages: list[dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(
