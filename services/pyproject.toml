@@ -22,7 +22,7 @@ hr-service = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3",
+    "pytest>=9.0.3",
     "pytest-asyncio>=0.25",
     "pytest-cov>=6.1",
     "ruff>=0.11",
